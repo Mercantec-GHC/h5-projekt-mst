@@ -9,7 +9,7 @@ monitor:
 	arduino-cli monitor -p /dev/ttyACM0
 
 graph:
-	arduino-cli monitor -p /dev/ttyACM0 | graphstream "255,255,0;0,0,255;0,255,0;0,255,255;255,0,255;255,0,0"
+	arduino-cli monitor -p /dev/ttyACM0 | graphstream
 
 clean:
 	rm -rf build/
