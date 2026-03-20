@@ -1,0 +1,22 @@
+name: verify
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: apt install -y libmicrohttpd
+    - name: check
+      working-directory: ./backend
+      run: make check
+    - name: build
+      working-directory: ./backend
+      run: make all
