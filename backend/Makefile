@@ -3,6 +3,7 @@ MAKEFLAGS += -j16
 
 CC=gcc
 LD=gcc
+CLANG_FORMAT=clang-format
 
 CFLAGS = -std=c23 -pedantic-errors -Wall -Wextra -Wconversion
 LDFLAGS =
@@ -45,10 +46,10 @@ $(obj_dir)/%.o: %.c
 	$(CC) $< -c -o $@ -MMD -MP $(CFLAGS)
 
 format:
-	clang-format -style=file -i src/*
+	$(CLANG_FORMAT) -style=file -i src/*
 
 check:
-	clang-format --dry-run --Werror -style=file src/*
+	$(CLANG_FORMAT) --dry-run --Werror -style=file src/*
 
 clean:
 	rm -rf $(build_dir)
