@@ -38,7 +38,7 @@ target=$(build_dir)/backend
 all: $(target)
 
 check:
-	clang-format --dry-run --Werror src/*
+	clang-format --dry-run --Werror -style=file:.clang-format.github src/*
 
 $(target): $(sources:%.c=$(obj_dir)/%.o)
 	$(LD) -o $@ $(CFLAGS) $(LDFLAGS) $^
