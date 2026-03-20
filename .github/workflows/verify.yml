@@ -12,12 +12,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run: gcc --version
-    - run: clang-format --version
     - run: sudo apt-get install -y libmicrohttpd-dev
+    - name: install llvm
+    - run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 22
+    - name: versions
+    - run: |
+        gcc --version
+        clang-format --version
     - name: check
       working-directory: ./backend
       run: make check
     - name: build
       working-directory: ./backend
       run: make all
+
