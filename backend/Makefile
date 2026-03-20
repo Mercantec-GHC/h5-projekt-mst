@@ -28,6 +28,11 @@ else
 	endif
 endif
 
+NO_MAIN = 0
+ifeq ($(NO_MAIN),1)
+	CFLAGS += -Dmain="not_main"
+endif
+
 build_dir = build
 obj_dir = $(build_dir)/obj
 
