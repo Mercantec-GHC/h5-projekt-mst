@@ -1,0 +1,11 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+manchaug-engine = { version = "0.1.0", path = "../../manchaug-engine" }
+
+[[bin]]
+name = "app"
+path = "main.rs"
