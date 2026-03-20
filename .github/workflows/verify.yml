@@ -12,12 +12,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: versions
-      run:
-        - gcc --version
-        - clang-format --version
-    - name: install dependencies
-      run: sudo apt-get install -y libmicrohttpd-dev
+    - run: gcc --version
+    - run: clang-format --version
+    - run: sudo apt-get install -y libmicrohttpd-dev
     - name: check
       working-directory: ./backend
       run: make check
