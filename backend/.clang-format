@@ -8,7 +8,10 @@ AllowShortFunctionsOnASingleLine: None
 
 BinPackArguments: false
 BinPackLongBracedList: false
-BinPackParameters: OnePerLine
+
+# replace this when when github actions/ubuntu has a new enough LLVM version
+# BinPackParameters: OnePerLine
+BinPackParameters: true
 
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
