@@ -4,13 +4,28 @@ MAKEFLAGS += -j16
 CC=gcc
 LD=gcc
 
-CFLAGS=-std=c23 -pedantic-errors -Wall -Wextra -Wconversion
-LDFLAGS=
+CFLAGS = -std=c23 -pedantic-errors -Wall -Wextra -Wconversion
+LDFLAGS =
 
-CFLAGS+=-g
+libraries = libmicrohttpd
 
-# CFLAGS+=-ggdb
-CFLAGS+=-fsanitize=address
+CFLAGS += $(shell pkg-config $(libraries) --cflags)
+LDFLAGS += $(shell pkg-config $(libraries) --libs)
+
+RELEASE = 0
+GDB = 0
+
+ifeq ($(RELEASE),1)
+	CFLAGS += -O3
+else
+	CFLAGS += -g -Wno-unused
+
+	ifeq ($(GDB),1)
+		CFLAGS += -ggdb
+	else
+		CFLAGS += -fsanitize=address
+	endif
+endif
 
 build_dir = build
 obj_dir = $(build_dir)/obj
