@@ -37,15 +37,18 @@ target=$(build_dir)/backend
 
 all: $(target)
 
-check:
-	clang-format --dry-run --Werror -style=file:.clang-format.github src/*
-
 $(target): $(sources:%.c=$(obj_dir)/%.o)
 	$(LD) -o $@ $(CFLAGS) $(LDFLAGS) $^
 
 $(obj_dir)/%.o: %.c
 	@mkdir -p $(dir $@)
 	$(CC) $< -c -o $@ -MMD -MP $(CFLAGS)
+
+format:
+	clang-format -style=file -i src/*
+
+check:
+	clang-format --dry-run --Werror -style=file src/*
 
 clean:
 	rm -rf $(build_dir)
