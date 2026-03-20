@@ -37,6 +37,9 @@ target=$(build_dir)/backend
 
 all: $(target)
 
+check:
+	clang-format --dry-run --Werror src/*
+
 $(target): $(sources:%.c=$(obj_dir)/%.o)
 	$(LD) -o $@ $(CFLAGS) $(LDFLAGS) $^
 
