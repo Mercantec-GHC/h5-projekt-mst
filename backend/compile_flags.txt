@@ -1,5 +1,5 @@
--xc
--std=c23
+-xc++
+-std=c++23
 -pedantic-errors
 -Wall
 -Wextra

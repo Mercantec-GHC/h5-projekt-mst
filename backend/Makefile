@@ -1,54 +1,54 @@
 
 MAKEFLAGS += -j16
 
-CC=gcc
-LD=gcc
+CXX=g++
+LD=g++
 CLANG_FORMAT=clang-format
 
-CFLAGS = -std=c23 -pedantic-errors -Wall -Wextra -Wconversion
+CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion
 LDFLAGS =
 
-libraries = libmicrohttpd
+# libraries = ""
 
-CFLAGS += $(shell pkg-config $(libraries) --cflags)
-LDFLAGS += $(shell pkg-config $(libraries) --libs)
+# CXXFLAGS += $(shell pkg-config $(libraries) --cflags)
+# LDFLAGS += $(shell pkg-config $(libraries) --libs)
 
 RELEASE = 0
 GDB = 0
 
 ifeq ($(RELEASE),1)
-	CFLAGS += -O3
+	CXXFLAGS += -O3
 else
-	CFLAGS += -g -Wno-unused
+	CXXFLAGS += -g -Wno-unused
 
 	ifeq ($(GDB),1)
-		CFLAGS += -ggdb
+		CXXFLAGS += -ggdb
 	else
-		CFLAGS += -fsanitize=address
+		CXXFLAGS += -fsanitize=address
 	endif
 endif
 
 NO_MAIN = 0
 ifeq ($(NO_MAIN),1)
-	CFLAGS += -Dmain="not_main"
+	CXXFLAGS += -Dmain="not_main"
 endif
 
 build_dir = build
 obj_dir = $(build_dir)/obj
 
 sources = \
-	src/main.c
+	src/main.cpp
 
 target=$(build_dir)/backend
 
 all: $(target)
 
-$(target): $(sources:%.c=$(obj_dir)/%.o)
-	$(LD) -o $@ $(CFLAGS) $(LDFLAGS) $^
+$(target): $(sources:%.cpp=$(obj_dir)/%.o)
+	$(LD) -o $@ $(CXXFLAGS) $(LDFLAGS) $^
 
-$(obj_dir)/%.o: %.c
+$(obj_dir)/%.o: %.cpp
 	@mkdir -p $(dir $@)
-	$(CC) $< -c -o $@ -MMD -MP $(CFLAGS)
+	$(CXX) $< -c -o $@ -MMD -MP $(CXXFLAGS)
 
 format:
 	$(CLANG_FORMAT) -style=file -i src/*
@@ -59,5 +59,5 @@ check:
 clean:
 	rm -rf $(build_dir)
 
--include $(sources:%.c=$(obj_dir)/%.d)
+-include $(sources:%.cpp=$(obj_dir)/%.d)
 
