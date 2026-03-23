@@ -9,7 +9,7 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    container: sfja/h5-mst-ci-backend:1.0
+    container: sfja/h5-mst-ci:1.0
     steps:
     - uses: actions/checkout@v6
     - name: check
@@ -24,6 +24,7 @@ jobs:
 
   game:
     runs-on: ubuntu-latest
+    container: sfja/h5-mst-ci:1.0
     steps:
     - uses: actions/checkout@v6
     - run: sudo apt-get install libsdl3-dev

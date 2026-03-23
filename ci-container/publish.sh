@@ -8,7 +8,7 @@ if [[ $version == "" ]]; then
     exit 1
 fi
 
-tag=sfja/h5-mst-ci-backend:$version
+tag=sfja/h5-mst-ci:$version
 
 set -xe
 
