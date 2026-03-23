@@ -13,7 +13,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - run: sudo apt-get install -y libmicrohttpd-dev
     - name: check
       working-directory: ./backend
       run: make check
