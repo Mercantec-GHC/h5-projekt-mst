@@ -37,7 +37,10 @@ build_dir = build
 obj_dir = $(build_dir)/obj
 
 sources = \
-	src/main.cpp
+	src/main.cpp \
+	src/tcp.cpp \
+	src/http.cpp
+
 
 target=$(build_dir)/backend
 

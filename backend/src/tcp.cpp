@@ -10,6 +10,7 @@
 #include <string.h>
 #include <string>
 #include <string_view>
+#include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -61,14 +62,20 @@ auto TcpListener::bind(const std::string& host, uint16_t port)
         return std::unexpected(errno_shim("could not listen"));
     }
 
-    return TcpListener(socket_fd, address);
+    auto epoll_fd = ::epoll_create(0);
+
+    auto events_accepted = epoll_event { .events = EPOLLIN, .data = { } };
+    if (::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &events_accepted) < 0) {
+        return std::unexpected(errno_shim("could not connect to epoll"));
+    }
+
+    return TcpListener(socket_fd, epoll_fd, address);
 }
 
 auto TcpListener::accept() -> Result<TcpConnection>
 {
     socklen_t size = sizeof(address);
-
-    int socket = ::accept(this->fd, (struct sockaddr*)&address, &size);
+    int socket = ::accept(this->listener_fd, (struct sockaddr*)&address, &size);
     if (socket < 0) {
         return std::unexpected(errno_shim("could not accept"));
     }

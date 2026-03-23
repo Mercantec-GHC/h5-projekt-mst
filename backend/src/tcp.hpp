@@ -4,6 +4,7 @@
 #include <expected>
 #include <netinet/in.h>
 #include <string>
+#include <vector>
 
 namespace mst {
 template <typename T> using Result = std::expected<T, std::string>;
@@ -29,10 +30,13 @@ public:
     auto accept() -> Result<TcpConnection>;
 
 private:
-    TcpListener(int fd, sockaddr_in address)
-        : fd(fd)
+    TcpListener(int listener_fd, int epoll_fd, sockaddr_in address)
+        : listener_fd(listener_fd)
+        , epoll_fd(epoll_fd)
         , address(address) { };
-    int fd;
+    int listener_fd;
+    int epoll_fd;
     sockaddr_in address;
+    std::vector<int> epoll_fds;
 };
 }
