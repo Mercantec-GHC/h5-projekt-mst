@@ -28,4 +28,7 @@ jobs:
     - name: build
       working-directory: ./backend
       run: make all LD=clang++-22 CXX=clang++-22
+    - name: test
+      working-directory: ./backend
+      run: make test
 
