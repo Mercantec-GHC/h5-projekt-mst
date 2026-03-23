@@ -1,3 +1,3 @@
-FROM alpine:3.14
-RUN apk add gcc llvm
+FROM alpine:edge
+RUN apk add --no-cache build-base clang22-extra-tools
 
