@@ -3,7 +3,6 @@ MAKEFLAGS += -j16
 
 CXX=g++
 LD=g++
-CLANG_FORMAT=clang-format
 
 CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion
 LDFLAGS =
@@ -23,9 +22,12 @@ else
 
 	ifeq ($(GDB),1)
 		CXXFLAGS += -ggdb
-	else
-		CXXFLAGS += -fsanitize=address
 	endif
+endif
+
+ASAN = 0
+ifeq ($(ASAN),1)
+	CXXFLAGS += -fsanitize=address
 endif
 
 build_dir = build
@@ -64,10 +66,10 @@ $(build_dir)/$(test_dir)/test_%: $(test_objects) $(objects_without_main)
 	$(LD) -o $@ $(CXXFLAGS) $(LDFLAGS) $^
 
 format:
-	$(CLANG_FORMAT) -style=file -i src/*
+	clang-format -style=file -i src/*
 
 check:
-	$(CLANG_FORMAT) --dry-run --Werror -style=file src/*
+	clang-format --dry-run --Werror -style=file src/*
 
 clean:
 	rm -rf $(build_dir)
