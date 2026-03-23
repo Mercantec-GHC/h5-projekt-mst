@@ -8,7 +8,8 @@ on:
 
 jobs:
   verify:
-    container: gcc:4.9
+    runs-on: ubuntu-latest
+    container: gcc:15
 
     steps:
     - uses: actions/checkout@v4
