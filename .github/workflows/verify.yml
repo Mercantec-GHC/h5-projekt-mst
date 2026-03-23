@@ -9,7 +9,7 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    container: sfja/h5-mst-ci:1.3
+    container: sfja/h5-mst-ci:latest
     steps:
     - uses: actions/checkout@v6
     - name: check
@@ -24,7 +24,7 @@ jobs:
 
   game:
     runs-on: ubuntu-latest
-    container: sfja/h5-mst-ci:1.3
+    container: sfja/h5-mst-ci:latest
     steps:
     - uses: actions/checkout@v6
     - run: rustup default stable
