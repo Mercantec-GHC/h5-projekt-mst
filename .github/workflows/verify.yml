@@ -1,4 +1,4 @@
-name: Backend
+name: Verify
 
 on:
   push:
@@ -7,12 +7,11 @@ on:
     branches: [ "main" ]
 
 jobs:
-  verify:
+  backend:
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci-backend:1.0
-
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: check
       working-directory: ./backend
       run: make check
@@ -22,4 +21,26 @@ jobs:
     - name: test
       working-directory: ./backend
       run: make test
+
+  game:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: cache crates
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: check
+      working-directory: ./unnamed-game-engine
+      run: cargo check
+    - name: build
+      working-directory: ./unnamed-game-engine
+      run: cargo build
+    - name: test
+      working-directory: ./unnamed-game-engine
+      run: cargo test
 
