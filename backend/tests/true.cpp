@@ -1,6 +1,7 @@
+#include "assertions.h"
 #include <cassert>
 
 int main()
 {
-    assert(true);
+    ASSERT_EQ(1 + 2, 3);
 }

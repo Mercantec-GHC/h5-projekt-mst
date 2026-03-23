@@ -28,41 +28,33 @@ else
 	endif
 endif
 
-NO_MAIN = 0
-ifeq ($(NO_MAIN),1)
-	CXXFLAGS += -Dmain="not_main"
-endif
-
 build_dir = build
 obj_dir = $(build_dir)/obj
+src_dir = src
+test_dir = tests
 
-sources = \
-	src/main.cpp \
-	src/tcp.cpp \
-	src/http.cpp
+sources = $(shell find $(src_dir) -name '*.cpp' -and -not -name 'main.cpp')
+sources_with_main=$(sources) src/main.cpp
 
-tests = \
-	tests/true.cpp
+tests = $(shell find $(test_dir) -name '*.cpp')
 
 target=$(build_dir)/backend
 
 all: $(target)
 
-$(target): $(sources:%.cpp=$(obj_dir)/%.o)
+$(target): $(sources_with_main:%.cpp=$(obj_dir)/%.o)
 	$(LD) -o $@ $(CXXFLAGS) $(LDFLAGS) $^
 
-$(obj_dir)/%.o: %.cpp
+$(obj_dir)/%.o:%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $< -c -o $@ -MMD -MP $(CXXFLAGS)
 
-test: $(sources:%.cpp=$(obj_dir)/%.o) run_tests
+test: $(tests:tests/%.cpp=$(build_dir)/tests/test_%)
+	printf "%s\n" $^ | xargs -I % sh -c 'echo "- %..." && ./% && echo "- %: OK" || (echo "- %: FAILED" && exit 1)'
 
-run_tests: $(tests:tests/%.cpp=$(build_dir)/tests/test_%)
-	printf "%s\n" $2 | xargs -I % sh -c 'echo "- %..." && ./% && echo "- %: OK" || echo "- %: FAILED" && exit 1'
-
-$(build_dir)/tests/test_%: tests/%.cpp
+$(build_dir)/tests/test_%: $(obj_dir)/tests/%.o $(sources:%.cpp=$(obj_dir)/%.o)
 	@mkdir -p $(dir $@)
-	$(CXX) $< -o $@ -MMD -MP $(CXXFLAGS)
+	$(LD) -o $@ $(CXXFLAGS) $(LDFLAGS) $^
 
 format:
 	$(CLANG_FORMAT) -style=file -i src/*
@@ -73,5 +65,5 @@ check:
 clean:
 	rm -rf $(build_dir)
 
--include $(sources:%.cpp=$(obj_dir)/%.d)
+-include $(sources_with_main:%.cpp=$(obj_dir)/%.d) $(tests:%.cpp=$(obj_dir)/%.d)
 
