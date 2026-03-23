@@ -9,7 +9,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    container: gcc:15
+    container: sfja/h5-mst-ci-backend
 
     steps:
     - uses: actions/checkout@v4
