@@ -41,6 +41,8 @@ sources = \
 	src/tcp.cpp \
 	src/http.cpp
 
+tests = \
+	tests/true.cpp
 
 target=$(build_dir)/backend
 
@@ -52,6 +54,15 @@ $(target): $(sources:%.cpp=$(obj_dir)/%.o)
 $(obj_dir)/%.o: %.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $< -c -o $@ -MMD -MP $(CXXFLAGS)
+
+test: $(sources:%.cpp=$(obj_dir)/%.o) run_tests
+
+run_tests: $(tests:tests/%.cpp=$(build_dir)/tests/test_%)
+	printf "%s\n" $2 | xargs -I % sh -c 'echo "- %..." && ./% && echo "- %: OK" || echo "- %: FAILED" && exit 1'
+
+$(build_dir)/tests/test_%: tests/%.cpp
+	@mkdir -p $(dir $@)
+	$(CXX) $< -o $@ -MMD -MP $(CXXFLAGS)
 
 format:
 	$(CLANG_FORMAT) -style=file -i src/*
