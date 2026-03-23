@@ -27,5 +27,5 @@ jobs:
       run: make check CLANG_FORMAT=clang-format-22
     - name: build
       working-directory: ./backend
-      run: make all CC=clang-22 LD=clang-22 CXX=clang++-22
+      run: make all LD=clang++-22 CXX=clang++-22
 
