@@ -11,3 +11,25 @@
   - Bought the 2 components. Delivery due Monday.
 
 ![alt text](docs/acceleration_graph.png)
+
+## March 24
+- Started on the creating the game.
+- Created a format check and test setup for the backend.
+- Created pipelines for building and testing our backend.
+- Created custom image for backend pipeline with correct build tools installed.
+- Added game to the pipeline.
+- Begin settting up Linux HTTP server on backend.
+- Hardware arrived.
+- Soldered pins on the MPU6050.
+- Wire setup on breadboard according to guide online.
+- Installed ESP32 build tools.
+- Created a "Hello World!" project on the ESP32.
+
+![alt text](docs/soldering1.png)
+
+![alt text](docs/soldering2.png)
+
+Current subprojects:
+- **Skateboard hardware:** Currently assembled on a breadboard. The setup seems to work. The ambition is to make a physical rig (a skateboard) to mount the circuit boards on. Nothing has been thought out in this regard, and this step is deferred.
+- **Skateboard firmware:** Currently there's a hello world project. MPU6050 the driver has been imported, but not completely. The accel/gyro example doesn't compile yet, as the I2C-driver dependency is not set correctly. The short term ambition is to make a firmware that reads accel/gyro sensor data with the driver and prints it to serial. After that, the ambition is to add MQTT transmission. This requires an MQTT message broker to be set up. The long term low priority ambition is to write a custom MPU6050 driver.
+- **Game:** Currently the program which opens an empty window. The ambition is to create a slope like game, preferably with 3d graphics. If the 3d graphics is too ambition, we will make a simple 2d game with top down view of the skateboard game.
