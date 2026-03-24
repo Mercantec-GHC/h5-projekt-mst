@@ -6,17 +6,17 @@ pub struct Shape {
 }
 
 impl Shape {
-    pub fn new_cube(V3(x, y, z): V3, V3(w, h, d): V3) -> Self {
+    pub fn new_cube(V3(w, h, d): V3) -> Self {
         Self {
             vertices: vec![
-                V3(x, y, z),             //  0 front top     left
-                V3(x + w, y, z),         //  1 front top     right
-                V3(x, y + h, z),         //  2 front bottom  left
-                V3(x + w, y + h, z),     //  3 front bottom  right
-                V3(x, y, z + d),         //  4 back  top     left
-                V3(x + w, y, z + d),     //  5 back  top     right
-                V3(x, y + h, z + d),     //  6 back  bottom  left
-                V3(x + w, y + h, z + d), //  7 back  bottom  right
+                V3(0.0, 0.0, 0.0),             //  0 front top     left
+                V3(0.0 + w, 0.0, 0.0),         //  1 front top     right
+                V3(0.0, 0.0 + h, 0.0),         //  2 front bottom  left
+                V3(0.0 + w, 0.0 + h, 0.0),     //  3 front bottom  right
+                V3(0.0, 0.0, 0.0 + d),         //  4 back  top     left
+                V3(0.0 + w, 0.0, 0.0 + d),     //  5 back  top     right
+                V3(0.0, 0.0 + h, 0.0 + d),     //  6 back  bottom  left
+                V3(0.0 + w, 0.0 + h, 0.0 + d), //  7 back  bottom  right
             ],
             fragments: vec![
                 // back
@@ -41,7 +41,7 @@ impl Shape {
         }
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = Vertex> + 'a {
+    pub fn vertices<'a>(&'a self) -> impl Iterator<Item = Vertex> + 'a {
         let verts: &[V3] = &self.vertices;
         self.fragments
             .iter()
