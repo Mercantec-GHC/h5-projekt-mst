@@ -40,7 +40,7 @@ jobs:
       working-directory: ./game
       run: cargo check
     - name: build
-      working-directory: ./gam
+      working-directory: ./game
       run: cargo build
     - name: test
       working-directory: ./game
