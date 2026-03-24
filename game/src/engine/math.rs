@@ -1,8 +1,9 @@
 use std::ops::{Add, AddAssign, Mul, MulAssign};
 
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct V2(pub f64, pub f64);
 
-#[derive(Copy, Clone)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct V3(pub f64, pub f64, pub f64);
 
 impl Add for V3 {
@@ -39,41 +40,28 @@ impl V3 {
     }
 }
 
-pub struct Vertex(V3, V3, V3);
+#[derive(Clone, PartialEq, Debug)]
+pub struct Vertex(pub V3, pub V3, pub V3);
 
-pub struct Cube {
-    vertices: [Vertex; 12],
-}
+#[cfg(test)]
+mod test {
+    use super::*;
 
-impl Cube {
-    pub fn new(V3(x, y, z): V3, V3(w, h, d): V3) -> Self {
-        Self {
-            vertices: [
-                Vertex(V3(x, y, z), V3(x, y + h, z), V3(x + w, y + h, z)),
-                Vertex(V3(x + w, y + h, z), V3(x + w, y, z), V3(x, y + h, z)),
-                Vertex(V3(x + w, y, z), V3(x + w, y + h, z), V3(x + w, y, z + d)),
-                Vertex(
-                    V3(x + w, y + h, z + d),
-                    V3(x + w, y, z + d),
-                    V3(x, y + h, z + d),
-                ),
-                Vertex(V3(x, y + h, z), V3(x + w, y + h, z), V3(x, y + h, z + d)),
-                Vertex(
-                    V3(x + w, y + h, z),
-                    V3(x + w, y + h, z + d),
-                    V3(x, y + h, z + d),
-                ),
-                Vertex(V3(x, y, z), V3(x, y + h, z), V3(x, y, z + d)),
-                Vertex(V3(x, y + h, z), V3(x, y + h, z + d), V3(x, y, z + d)),
-                Vertex(V3(x, y, z), V3(x + w, y, z), V3(x, y, z + d)),
-                Vertex(V3(x + w, y, z), V3(x + w, y, z + d), V3(x, y, z + d)),
-                Vertex(V3(x, y, z + d), V3(x + w, y, z + d), V3(x, y + h, z + d)),
-                Vertex(
-                    V3(x + w, y, z + d),
-                    V3(x + w, y + h, z + d),
-                    V3(x, y + h, z + d),
-                ),
-            ],
-        }
+    #[test]
+    fn v3_ops() {
+        let v2 = |v: f64| V2(v, v);
+        let v3 = |v: f64| V3(v, v, v);
+
+        assert_eq!(v3(1.0) + v3(2.0), v3(3.0));
+
+        let mut a = v3(1.0);
+        a += v3(2.0);
+        assert_eq!(a, v3(3.0));
+
+        assert_eq!(v3(2.0) * 2.0, v3(4.0));
+
+        let mut a = v3(2.0);
+        a *= 2.0;
+        assert_eq!(a, v3(4.0));
     }
 }

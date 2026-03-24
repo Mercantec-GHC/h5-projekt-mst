@@ -2,6 +2,7 @@ mod error;
 mod game;
 pub mod math;
 mod sdl_io;
+pub mod shapes;
 mod system;
 
 pub use game::{Event, Game, Io, Object, Renderer};
