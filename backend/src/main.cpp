@@ -1,6 +1,6 @@
-#include "tcp.hpp"
+#include "event_loop.hpp"
+#include "server.hpp"
 #include <print>
-#include <stdio.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -9,15 +9,15 @@
 
 int main(void)
 {
-    auto x = mst::TcpListener::bind("0.0.0.0", PORT);
+    auto mgr = mst::event::Manager::create().value();
+    auto x = mst::Server::bind(mgr, "0.0.0.0", PORT);
     if (!x) {
         std::println("{}", x.error());
         return 1;
     }
     std::println("starting");
-    auto listener = x.value();
     {
-        auto x = listener.loop();
+        auto x = mgr.start();
     }
     return 0;
 }
