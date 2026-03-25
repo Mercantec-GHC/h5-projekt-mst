@@ -4,10 +4,28 @@
 #include <expected>
 #include <netinet/in.h>
 #include <string>
-#include <vector>
+#include <unistd.h>
 
 namespace mst {
+
 template <typename T> using Result = std::expected<T, std::string>;
+
+class TcpConnection;
+
+namespace event {
+    enum Variant { Listener, Connection };
+    typedef union {
+        int listener_fd;
+        TcpConnection* connection;
+    } Data;
+    struct Event {
+        Variant variant;
+        Data data;
+    };
+
+    auto make_listener_event(int fd) -> Event*;
+    auto make_connection_event(TcpConnection connection) -> Event*;
+}
 
 class TcpListener;
 
@@ -20,6 +38,7 @@ public:
 
 private:
     int fd;
+    event::Event event;
 };
 
 class TcpListener {
@@ -27,16 +46,13 @@ class TcpListener {
 public:
     static auto bind(const std::string& host, uint16_t port)
         -> Result<TcpListener>;
-    auto accept() -> Result<TcpConnection>;
+    auto start() -> Result<void>;
 
 private:
-    TcpListener(int listener_fd, int epoll_fd, sockaddr_in address)
-        : listener_fd(listener_fd)
-        , epoll_fd(epoll_fd)
+    TcpListener(int epoll_fd, sockaddr_in address)
+        : epoll_fd(epoll_fd)
         , address(address) { };
-    int listener_fd;
     int epoll_fd;
     sockaddr_in address;
-    std::vector<int> epoll_fds;
 };
 }

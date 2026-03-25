@@ -1,5 +1,6 @@
 #include "tcp.h"
 #include <arpa/inet.h>
+#include <cstdlib>
 #include <errno.h>
 #include <expected>
 #include <format>
@@ -15,6 +16,29 @@
 #include <unistd.h>
 
 namespace mst {
+
+auto event::make_listener_event(int fd) -> Event*
+{
+    auto ev = (Event*)malloc(sizeof(Event));
+
+    ev->variant = Listener;
+    ev->data.listener_fd = fd;
+
+    return ev;
+}
+
+auto event::make_connection_event(TcpConnection connection) -> Event*
+{
+    auto ev = (Event*)malloc(sizeof(Event));
+    auto ptr = (TcpConnection*)std::malloc(sizeof(TcpConnection));
+    *ptr = connection;
+
+    ev->variant = Connection;
+    ev->data.connection = ptr;
+
+    return ev;
+}
+
 auto errno_shim(std::string_view message) -> std::string
 {
     auto x = strerror(errno);
@@ -62,24 +86,61 @@ auto TcpListener::bind(const std::string& host, uint16_t port)
         return std::unexpected(errno_shim("could not listen"));
     }
 
-    auto epoll_fd = ::epoll_create(0);
+    auto epoll_fd = ::epoll_create1(0);
 
-    auto events_accepted = epoll_event { .events = EPOLLIN, .data = { } };
-    if (::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &events_accepted) < 0) {
+    auto context = event::make_listener_event(socket_fd);
+
+    auto event = epoll_event { .events = EPOLLIN, .data = { .ptr = context } };
+    if (::epoll_ctl(epoll_fd, EPOLL_CTL_ADD, socket_fd, &event) < 0) {
         return std::unexpected(errno_shim("could not connect to epoll"));
     }
 
-    return TcpListener(socket_fd, epoll_fd, address);
+    return TcpListener(epoll_fd, address);
 }
 
-auto TcpListener::accept() -> Result<TcpConnection>
+auto TcpListener::start() -> Result<void>
 {
-    socklen_t size = sizeof(address);
-    int socket = ::accept(this->listener_fd, (struct sockaddr*)&address, &size);
-    if (socket < 0) {
-        return std::unexpected(errno_shim("could not accept"));
+    epoll_event events[128] = { };
+    while (true) {
+
+        auto events_len = ::epoll_wait(this->epoll_fd, events, 128, -1);
+        if (events_len < 0) {
+            return std::unexpected(errno_shim("could not poll"));
+        }
+        for (int i = 0; i < events_len; ++i) {
+            auto event = (event::Event*)events[i].data.ptr;
+
+            switch (event->variant) {
+                case event::Listener: {
+                    socklen_t size = sizeof(address);
+                    int client = ::accept(
+                        events[0].data.fd, (struct sockaddr*)&address, &size);
+                    if (client < 0) {
+                        return std::unexpected(errno_shim("could not accept"));
+                    }
+
+                    auto context = event::make_connection_event(
+                        TcpConnection(*this, client));
+
+                    auto poll_event = epoll_event { .events = EPOLLIN,
+                        .data = { .ptr = context } };
+
+                    if (::epoll_ctl(
+                            epoll_fd, EPOLL_CTL_ADD, client, &poll_event)
+                        < 0) {
+                        return std::unexpected(
+                            errno_shim("could not add connection to epoll"));
+                    }
+
+                    break;
+                }
+                case event::Connection: {
+                    event->data.connection.wake();
+                    break;
+                }
+            }
+        }
     }
-    return TcpConnection(*this, socket);
 }
 
 }
