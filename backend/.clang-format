@@ -7,9 +7,8 @@ InsertNewlineAtEOF: true
 AllowShortFunctionsOnASingleLine: None
 
 BinPackArguments: false
-# BinPackLongBracedList: false
-# BinPackParameters: OnePerLine
-BinPackParameters: true
+BinPackLongBracedList: false
+BinPackParameters: OnePerLine
 
 AllowAllArgumentsOnNextLine: true
 AllowAllParametersOfDeclarationOnNextLine: true
