@@ -1,6 +1,6 @@
 use sdl3::pixels::Color;
 
-use crate::engine::math::{V2, V3};
+use crate::engine::math::{Vertex, V2, V3};
 use std::{marker::PhantomData, time::Duration};
 
 use super::error::Error;
@@ -19,6 +19,7 @@ pub trait Renderer {
     fn point(&mut self, pos: V2, color: Color);
     fn draw_line(&mut self, from: V2, to: V2, color: Color);
     fn draw_cube(&mut self, pos: V3, size: V3, outline_colors: Color, fill_color: Color);
+    fn draw_triangle(&mut self, triangle: Vertex, color: Color);
 }
 
 pub enum Event {

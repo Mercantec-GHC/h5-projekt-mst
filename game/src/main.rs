@@ -36,8 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut game = engine::Game::<engine::SdlIo, Object>::new()?;
 
     let player = Object::Player {
-        pos: V3(-50.0, -50.0, 0.0),
-        vel: V3(0.0, 0.0, 1.0),
+        pos: V3(200.0, 100.0, 0.0),
+        vel: V3(0.0, 0.0, 0.1),
     };
     game.spawn(player);
 

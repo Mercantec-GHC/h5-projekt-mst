@@ -35,13 +35,30 @@ impl MulAssign<f64> for V3 {
 }
 
 impl V3 {
-    pub fn as_2d(&self) -> V2 {
+    pub fn project(&self) -> V2 {
         V2(self.0 / self.2, self.1 / self.2)
+    }
+
+    pub fn delta(&self, v: V3) -> V3 {
+        V3(v.0 - self.0, v.1 - self.1, v.2 - self.2)
     }
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Vertex(pub V3, pub V3, pub V3);
+
+impl Vertex {
+    pub fn normal_vector(&self) -> V3 {
+        let vector_a = self.1.delta(self.0);
+        let vector_b = self.1.delta(self.2);
+
+        V3(
+            vector_a.1 * vector_b.2 - vector_a.2 * vector_b.1,
+            vector_a.2 * vector_b.0 - vector_a.0 * vector_b.2,
+            vector_a.0 * vector_b.1 - vector_a.1 * vector_b.0,
+        )
+    }
+}
 
 #[cfg(test)]
 mod test {

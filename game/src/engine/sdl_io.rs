@@ -4,7 +4,8 @@ use sdl3::{
     event::Event,
     keyboard::Keycode,
     pixels::{Color, PixelFormat},
-    render::{Canvas, FRect},
+    rect::Point,
+    render::{Canvas, FPoint, FRect},
     video::Window,
     Sdl, VideoSubsystem,
 };
@@ -12,12 +13,12 @@ use sdl3::{
 use crate::engine::{
     error::Error,
     game,
-    math::{V2, V3},
+    math::{Vertex, V2, V3},
     Object,
 };
 
-static WIDTH: f64 = 1280.0;
-static HEIGHT: f64 = 720.0;
+pub static WIDTH: f64 = 1280.0;
+pub static HEIGHT: f64 = 720.0;
 
 pub struct SdlIo {
     sdl_context: Sdl,
@@ -111,24 +112,90 @@ impl game::Renderer for SdlIo {
     }
 
     fn draw_line(&mut self, from: V2, to: V2, color: Color) {
-        todo!()
+        self.canvas.set_draw_color(color);
+        self.canvas
+            .draw_line(
+                FPoint::new(from.0 as f32, from.1 as f32),
+                FPoint::new(to.0 as f32, to.1 as f32),
+            )
+            .unwrap();
+    }
+
+    fn draw_triangle(&mut self, triangle: Vertex, color: Color) {
+        self.draw_line(
+            self.world_to_screen(triangle.0.project()),
+            self.world_to_screen(triangle.1.project()),
+            color,
+        );
+        self.draw_line(
+            self.world_to_screen(triangle.1.project()),
+            self.world_to_screen(triangle.2.project()),
+            color,
+        );
+        self.draw_line(
+            self.world_to_screen(triangle.2.project()),
+            self.world_to_screen(triangle.0.project()),
+            color,
+        );
     }
 
     fn draw_cube(&mut self, pos: V3, size: V3, outline_color: Color, fill_color: Color) {
         let V3(x, y, z) = pos;
-        let V3(w, h, d) = size;
+        let V3(w, h, mut d) = size;
+        d /= 200.0;
         let points = [
             pos,
             V3(x + w, y, z),
             V3(x, y + h, z),
             V3(x + w, y + h, z),
-            V3(x, y, z + d / 100.0),
-            V3(x + w, y, z + d / 100.0),
-            V3(x, y + h, z + d / 100.0),
-            V3(x + w, y + h, z + d / 100.0),
+            V3(x, y, z + d),
+            V3(x + w, y, z + d),
+            V3(x, y + h, z + d),
+            V3(x + w, y + h, z + d),
         ];
+
+        let vertices = [
+            // south
+            Vertex(points[0], points[2], points[3]),
+            Vertex(points[0], points[3], points[1]),
+            // east
+            Vertex(points[1], points[3], points[7]),
+            Vertex(points[1], points[7], points[5]),
+            // north
+            Vertex(points[5], points[7], points[6]),
+            Vertex(points[5], points[6], points[4]),
+            // west
+            Vertex(points[4], points[6], points[2]),
+            Vertex(points[4], points[2], points[0]),
+            // top
+            Vertex(points[2], points[6], points[7]),
+            Vertex(points[2], points[7], points[3]),
+            // bottom
+            Vertex(points[5], points[4], points[0]),
+            Vertex(points[5], points[0], points[1]),
+        ];
+        println!("current triangles");
+
+        for vertex in vertices {
+            let normal_vector = vertex.normal_vector();
+
+            // self.draw_triangle(vertex, outline_color);
+            println!("{}", normal_vector.2);
+
+            if normal_vector.2 > 0.0 {
+                self.draw_triangle(
+                    Vertex(
+                        vertex.0,
+                        vertex.1,
+                        V3(vertex.2 .0, vertex.2 .1, vertex.2 .2),
+                    ),
+                    outline_color,
+                );
+            }
+        }
+
         for point in points {
-            self.point(point.as_2d(), outline_color);
+            self.point(point.project(), outline_color);
         }
     }
 }

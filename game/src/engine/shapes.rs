@@ -41,6 +41,10 @@ impl Shape {
         }
     }
 
+    pub fn points<'a>(&'a self) -> impl Iterator<Item = V3> + 'a {
+        self.vertices.iter().cloned()
+    }
+
     pub fn vertices<'a>(&'a self) -> impl Iterator<Item = Vertex> + 'a {
         let verts: &[V3] = &self.vertices;
         self.fragments
