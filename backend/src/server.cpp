@@ -21,8 +21,9 @@ auto Client::wake() -> Result<void>
     return { };
 }
 
-auto Server::bind(mst::event::Manager& mgr, const std::string& host,
-    uint16_t port) -> Result<void>
+auto Server::bind(
+    mst::event::Manager& mgr, const std::string& host, uint16_t port)
+    -> Result<void>
 {
     auto x = TcpListener::bind(host, port);
     if (!x) {

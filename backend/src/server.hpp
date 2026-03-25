@@ -8,8 +8,9 @@ namespace mst {
 class Server {
 public:
     auto wake(mst::event::Manager& mgr) -> Result<void>;
-    static auto bind(mst::event::Manager& mgr, const std::string& host,
-        uint16_t port) -> Result<void>;
+    static auto bind(
+        mst::event::Manager& mgr, const std::string& host, uint16_t port)
+        -> Result<void>;
 
 private:
     TcpListener listener;
