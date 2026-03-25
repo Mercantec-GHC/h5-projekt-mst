@@ -47,6 +47,18 @@ auto TcpListener::bind(const std::string& host, uint16_t port)
         .sin_zero = { },
     };
 
+    // enable immediate reuse of socket address
+    // see socket(7) about SO_REUSEADDR
+    // > Argument is an integer boolean flag.
+    int reuse_address = true;
+    if (::setsockopt(socket_fd,
+            SOL_SOCKET,
+            SO_REUSEADDR,
+            &reuse_address,
+            sizeof(reuse_address))) {
+        return std::unexpected(errno_shim("could not configure socket"));
+    }
+
     if (::bind(socket_fd, (struct sockaddr*)&address, sizeof(address)) < 0) {
         return std::unexpected(errno_shim("could not bind"));
     }
