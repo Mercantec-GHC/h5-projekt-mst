@@ -56,7 +56,6 @@ impl<'r, R: Renderer> R3d<'r, R> {
             self.draw_line(face.0 + pos, pxyz + pos, Color::WED);
 
             let bingbongvector = face.0 - CAMERA_POS + pos;
-            self.draw_line(face.0 + pos, V3(0.0, 0.0, -0.99), Color::WED);
             if normal_vector.dot(bingbongvector) < 0.0 {
                 self.draw_triangle(face.translate(pos - CAMERA_POS), outline_color);
             }
