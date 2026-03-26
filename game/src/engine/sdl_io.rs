@@ -3,9 +3,9 @@ use std::time::{Duration, Instant};
 use sdl3::{
     event::Event,
     keyboard::Keycode,
-    pixels::{Color as SdlColor, PixelFormat},
+    pixels::{Color as SdlColor, FColor, PixelFormat},
     rect::Point,
-    render::{Canvas, FPoint, FRect},
+    render::{Canvas, FPoint, FRect, Vertex, VertexIndices},
     video::Window,
     Sdl, VideoSubsystem,
 };
@@ -14,7 +14,7 @@ use crate::engine::{
     error::Error,
     game,
     math::{V2, V3},
-    Color, Renderer,
+    Color, Renderer, Triangle2,
 };
 
 pub static WIDTH: f64 = 1280.0;
@@ -137,6 +137,23 @@ impl Renderer for SdlIo {
             .draw_line(self.point_w2s(from), self.point_w2s(to))
             .unwrap();
     }
+
+    fn draw_triangles(&mut self, triangles: &[Triangle2], color: Color) {
+        let vertices = triangles
+            .iter()
+            .flat_map(|t| [t.0, t.1, t.2])
+            .map(|p| self.point_w2s(p))
+            .map(|p| Vertex {
+                position: p.into(),
+                color: color.into(),
+                tex_coord: FPoint::new(0.0, 0.0),
+            })
+            .collect::<Vec<_>>();
+
+        self.canvas
+            .render_geometry(&vertices, None, VertexIndices::Sequential)
+            .unwrap();
+    }
 }
 
 impl From<V2> for FPoint {
@@ -148,11 +165,22 @@ impl From<V2> for FPoint {
 impl From<Color> for SdlColor {
     fn from(value: Color) -> Self {
         match value {
-            Color::HEX(v) => SdlColor::from_u32(&PixelFormat::BGR24, v),
-            Color::WHITE => SdlColor::WHITE,
-            Color::GREEN => SdlColor::GREEN,
-            Color::RED => SdlColor::RED,
-            Color::CYAN => SdlColor::CYAN,
+            Color::Hex(v) => SdlColor::RGB(
+                ((v >> 16) & 0xff) as u8,
+                ((v >> 8) & 0xff) as u8,
+                (v & 0xff) as u8,
+            ),
+            Color::White => SdlColor::WHITE,
+            Color::Green => SdlColor::GREEN,
+            Color::Red => SdlColor::RED,
+            Color::Cyan => SdlColor::CYAN,
+            Color::Black => SdlColor::BLACK,
         }
+    }
+}
+
+impl From<Color> for FColor {
+    fn from(value: Color) -> Self {
+        FColor::from(<Color as Into<SdlColor>>::into(value))
     }
 }

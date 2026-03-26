@@ -38,6 +38,11 @@ impl V3 {
     pub fn map<F: Fn(f64) -> f64>(&self, func: F) -> Self {
         V3(func(self.0), func(self.1), func(self.2))
     }
+
+    pub fn rotate(&self, rot: V3) -> Self {
+        M3x3::new_rotate_z(rot.2)
+            * (M3x3::new_rotate_y(rot.1) * (M3x3::new_rotate_x(rot.0) * *self))
+    }
 }
 
 impl Add for V3 {
@@ -91,6 +96,79 @@ impl SubAssign for V3 {
 impl MulAssign<f64> for V3 {
     fn mul_assign(&mut self, rhs: f64) {
         *self = *self * rhs;
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Triangle2(pub V2, pub V2, pub V2);
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct Triangle3(pub V3, pub V3, pub V3);
+
+impl Triangle3 {
+    pub fn normal(&self) -> V3 {
+        (self.1 - self.0).cross(self.2 - self.1)
+    }
+
+    pub fn translate(&self, offset: V3) -> Self {
+        Self(self.0 + offset, self.1 + offset, self.2 + offset)
+    }
+
+    pub fn project_2d(&self) -> Triangle2 {
+        Triangle2(
+            self.0.project_2d(),
+            self.1.project_2d(),
+            self.2.project_2d(),
+        )
+    }
+
+    pub fn middle(&self) -> V3 {
+        (self.0 + self.1 + self.2).map(|v| v / 3.0)
+    }
+}
+
+struct M3x3([f64; 9]);
+
+impl M3x3 {
+    #[rustfmt::skip]
+    pub fn new_rotate_x(angle: f64) -> Self {
+        Self([
+            1.0,             0.0,              0.0,
+            0.0, f64::cos(angle), -f64::sin(angle),
+            0.0, f64::sin(angle),  f64::cos(angle),
+        ])
+    }
+
+    #[rustfmt::skip]
+    pub fn new_rotate_y(angle: f64) -> Self {
+        Self([
+             f64::cos(angle), 0.0, f64::sin(angle),
+                         0.0, 1.0,             0.0,
+            -f64::sin(angle), 0.0, f64::cos(angle),
+        ])
+    }
+
+    #[rustfmt::skip]
+    pub fn new_rotate_z(angle: f64) -> Self {
+        Self([
+            f64::cos(angle), -f64::sin(angle), 0.0,
+            f64::sin(angle),  f64::cos(angle), 0.0,
+                        0.0,              0.0, 1.0,
+        ])
+    }
+}
+
+impl Mul<V3> for M3x3 {
+    type Output = V3;
+
+    fn mul(self, rhs: V3) -> Self::Output {
+        let V3(x, y, z) = rhs;
+        let [xx, xy, xz, yx, yy, yz, zx, zy, zz] = self.0;
+        V3(
+            x * xx + y * xy + z * xz,
+            x * yx + y * yy + z * yz,
+            x * zx + y * zy + z * zz,
+        )
     }
 }
 

@@ -54,10 +54,9 @@ static PLANE_VERTICES: [(i8, i8, i8); 4] = [
     (1, 0, 0),
     (1, 0, 1),
 ];
-static PLANE_EDGES: [(usize, usize); 5] = [
+static PLANE_EDGES: [(usize, usize); 4] = [
     //
     (0, 1),
-    (1, 2),
     (2, 3),
     (0, 2),
     (1, 3),
@@ -101,11 +100,32 @@ impl Shape {
         self.vertices.iter().cloned()
     }
 
+    pub fn edges<'a>(&'a self) -> impl Iterator<Item = (V3, V3)> + 'a {
+        let verts: &[V3] = &self.vertices;
+        self.edges.iter().map(|(a, b)| (verts[*a], verts[*b]))
+    }
+
     pub fn faces<'a>(&'a self) -> impl Iterator<Item = Triangle3> + 'a {
         let verts: &[V3] = &self.vertices;
         self.faces
             .iter()
             .map(|(a, b, c)| Triangle3(verts[*a], verts[*b], verts[*c]))
+    }
+
+    pub fn rotate(&self, rot: V3) -> Self {
+        Self {
+            vertices: self.vertices.iter().map(|v| v.rotate(rot)).collect(),
+            edges: self.edges.clone(),
+            faces: self.faces.clone(),
+        }
+    }
+
+    pub fn translate(&self, trans: V3) -> Self {
+        Self {
+            vertices: self.vertices.iter().map(|v| *v + trans).collect(),
+            edges: self.edges.clone(),
+            faces: self.faces.clone(),
+        }
     }
 }
 

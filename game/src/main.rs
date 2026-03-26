@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use std::time::Duration;
+use std::{f64, time::Duration};
 
-use crate::engine::{Color, R3d, Shape, Triangle3, V3};
+use crate::engine::{Color, R3d, Shape, V3};
 
 mod engine;
 
@@ -15,8 +15,8 @@ impl<R: engine::Renderer> engine::Object<R> for MyObject {
         match self {
             MyObject::Player { pos, vel } => {
                 *pos += *vel * delta_time.as_secs_f64();
-                if pos.0 >= 1.0 {
-                    pos.0 = -1.0;
+                if pos.0 >= 2.1 {
+                    pos.0 = -2.0;
                 }
             }
         }
@@ -32,8 +32,8 @@ impl<R: engine::Renderer> engine::Object<R> for MyObject {
                         r3d.draw_shape(
                             V3(x as f64 * 0.1, -0.5, z as f64 * 0.1),
                             &Shape::new_plane(V3(0.1, 0.0, 0.1)),
-                            Color::CYAN,
-                            Color::WHITE,
+                            Color::Cyan,
+                            Color::Black,
                         );
                     }
                 }
@@ -41,14 +41,16 @@ impl<R: engine::Renderer> engine::Object<R> for MyObject {
                 r3d.draw_shape(
                     *pos + V3(0.0, 0.2, 0.0),
                     &Shape::new_cube(V3(0.2, 0.1, 0.2)),
-                    Color::GREEN,
-                    Color::WHITE,
+                    Color::Green,
+                    Color::Black,
                 );
                 r3d.draw_shape(
-                    *pos + V3(-0.4, -0.2, 0.0),
-                    &Shape::new_cube(V3(0.2, 0.2, 0.2)),
-                    Color::GREEN,
-                    Color::WHITE,
+                    *pos + V3(-0.8, -0.2, 0.0),
+                    &Shape::new_cube(V3(0.2, 0.2, 0.2))
+                        .translate(V3(-0.1, -0.1, -0.1))
+                        .rotate(V3(pos.0 * 5.0, pos.0 * 5.0, pos.0 * 5.0)),
+                    Color::Green,
+                    Color::Black,
                 );
             }
         }
@@ -60,7 +62,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut game = engine::Game::<engine::SdlIo, MyObject>::new()?;
 
     let player = MyObject::Player {
-        pos: V3(0.0, -0.1, 0.0),
+        pos: V3(-1.0, -0.1, 0.0),
         vel: V3(0.4, 0.0, 0.0),
     };
     game.spawn(player);

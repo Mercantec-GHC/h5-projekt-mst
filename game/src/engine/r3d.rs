@@ -1,43 +1,18 @@
-use crate::engine::{game::Renderer, Color, Shape, V2, V3};
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct Triangle2(pub V2, pub V2, pub V2);
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct Triangle3(pub V3, pub V3, pub V3);
-
-impl Triangle3 {
-    pub fn normal_vector(&self) -> V3 {
-        (self.1 - self.0).cross(self.2 - self.1)
-    }
-
-    pub fn translate(&self, offset: V3) -> Self {
-        Self(self.0 + offset, self.1 + offset, self.2 + offset)
-    }
-
-    pub fn project_2d(&self) -> Triangle2 {
-        Triangle2(
-            self.0.project_2d(),
-            self.1.project_2d(),
-            self.2.project_2d(),
-        )
-    }
-
-    pub fn middle(&self) -> V3 {
-        let m1 = self.0 + (self.1 - self.0).map(|v| v / 2.0);
-        m1 + (self.2 - m1).map(|v| v / 2.0)
-    }
-}
+use crate::engine::{game::Renderer, Color, Shape, Triangle2, Triangle3, V2, V3};
 
 pub struct R3d<'r, R: Renderer> {
     r: &'r mut R,
+    triangle_buffer: Vec<Triangle2>,
 }
 
 static CAMERA_POS: V3 = V3(0.0, 0.0, -1.0);
 
 impl<'r, R: Renderer> R3d<'r, R> {
     pub fn new(r: &'r mut R) -> Self {
-        Self { r }
+        Self {
+            r,
+            triangle_buffer: Vec::new(),
+        }
     }
 
     pub fn draw_line(&mut self, from: V3, to: V3, color: Color) {
@@ -53,25 +28,45 @@ impl<'r, R: Renderer> R3d<'r, R> {
     }
 
     pub fn draw_shape(&mut self, pos: V3, shape: &Shape, outline_color: Color, fill_color: Color) {
+        self.triangle_buffer.clear();
+        self.triangle_buffer
+            .extend(shape.faces().map(|tri| tri.translate(pos).project_2d()));
+
+        self.r.draw_triangles(&self.triangle_buffer, fill_color);
+
         for face in shape.faces() {
-            let normal_vector = face.normal_vector();
-            let pxyz = face.middle() + normal_vector;
-            self.draw_line(face.middle() + pos, pxyz + pos, Color::RED);
+            if face.normal().dot(face.0 - CAMERA_POS + pos) >= 0.0 {
+                continue;
+            }
+            // let pxyz = face.middle() + face.normal();
             // self.draw_line(
             //     face.middle() + pos,
-            //     face.middle() + face.0.unit() * 0.1 + pos,
-            //     Color::HEX(0x33dd33),
+            //     face.middle() + (face.1 - face.0).unit() * 0.02 + pos,
+            //     Color::HEX(0xffaa00),
             // );
+            // self.draw_line(
+            //     face.middle() + pos,
+            //     face.middle() + (face.2 - face.1).unit() * 0.02 + pos,
+            //     Color::HEX(0x00ffaa),
+            // );
+            // self.draw_line(
+            //     face.middle() + pos,
+            //     face.middle() + (face.0 - face.2).unit() * 0.02 + pos,
+            //     Color::HEX(0xaa00ff),
+            // );
+            // self.draw_line(face.middle() + pos, pxyz + pos, Color::HEX(0xffffff));
 
-            let bingbongvector = face.0 - CAMERA_POS + pos;
-            if normal_vector.dot(bingbongvector) < 0.0 {
-                self.draw_triangle(face.translate(pos - CAMERA_POS), outline_color);
-            }
+            // self.draw_triangle(face.translate(pos - CAMERA_POS), outline_color);
+            self.r.draw_line(
+                (face.0 + pos).project_2d(),
+                (face.1 + pos).project_2d(),
+                outline_color,
+            );
+            self.r.draw_line(
+                (face.2 + pos).project_2d(),
+                (face.0 + pos).project_2d(),
+                outline_color,
+            );
         }
-
-        // for vertex in shape.vertices() {
-        //     self.r
-        //         .draw_point((vertex + pos).project_2d(), outline_color);
-        // }
     }
 }
