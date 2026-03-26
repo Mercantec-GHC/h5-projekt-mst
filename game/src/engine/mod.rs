@@ -1,10 +1,17 @@
+#![allow(unused_imports)]
+
 mod error;
 mod game;
-pub mod math;
+mod math;
+mod r3d;
 mod sdl_io;
-pub mod shapes;
+mod shapes;
 mod system;
 
-pub use game::{Event, Game, Io, Object, Renderer};
-pub use math::V3;
-pub use sdl_io::SdlIo;
+pub use error::*;
+pub use game::*;
+pub use math::*;
+pub use r3d::*;
+pub use sdl_io::*;
+pub use shapes::*;
+pub use system::*;

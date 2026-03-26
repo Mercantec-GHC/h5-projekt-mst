@@ -2,20 +2,18 @@
 
 use std::time::Duration;
 
-use sdl3::pixels::Color;
-
-use crate::engine::math::{V2, V3};
+use crate::engine::{Color, R3d, V3};
 
 mod engine;
 
-enum Object {
+enum MyObject {
     Player { pos: V3, vel: V3 },
 }
 
-impl<R: engine::Renderer> engine::Object<R> for Object {
+impl<R: engine::Renderer> engine::Object<R> for MyObject {
     fn update(&mut self, delta_time: Duration) {
         match self {
-            Object::Player { pos, vel } => {
+            MyObject::Player { pos, vel } => {
                 *pos += *vel * delta_time.as_secs_f64();
             }
         }
@@ -23,9 +21,15 @@ impl<R: engine::Renderer> engine::Object<R> for Object {
 
     fn render(&mut self, r: &mut R) {
         match self {
-            Object::Player { pos, .. } => {
-                // r.draw_rect(V2(pos.0, pos.1), V2(400.0, 400.0));
-                r.draw_cube(*pos, V3(100.0, 100.0, 100.0), Color::GREEN, Color::WHITE);
+            MyObject::Player { pos, .. } => {
+                let mut r3d = R3d::new(r);
+                r3d.draw_cube(*pos, V3(0.2, 0.2, 0.2), Color::GREEN, Color::WHITE);
+                r3d.draw_cube(
+                    *pos + V3(-0.4, -0.2, 0.0),
+                    V3(0.2, 0.2, 0.2),
+                    Color::GREEN,
+                    Color::WHITE,
+                );
             }
         }
     }
@@ -33,11 +37,11 @@ impl<R: engine::Renderer> engine::Object<R> for Object {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut sdl_io = engine::SdlIo::new()?;
-    let mut game = engine::Game::<engine::SdlIo, Object>::new()?;
+    let mut game = engine::Game::<engine::SdlIo, MyObject>::new()?;
 
-    let player = Object::Player {
-        pos: V3(200.0, 100.0, 0.0),
-        vel: V3(0.0, 0.0, 0.1),
+    let player = MyObject::Player {
+        pos: V3(-0.1, -0.1, 0.0),
+        vel: V3(0.0, 0.1, 0.0),
     };
     game.spawn(player);
 
