@@ -1,0 +1,11 @@
+services:
+  backend:
+    build: .
+    ports:
+      - "8888:5000"
+  mqtt:
+    image: docker.io/rabbitmq:4.2.5
+    ports:
+      - "5672:6000"
+
+
