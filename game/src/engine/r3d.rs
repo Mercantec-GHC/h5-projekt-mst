@@ -36,8 +36,7 @@ impl<'r, R: Renderer> R3d<'r, R> {
     }
 
     pub fn draw_line(&mut self, from: V3, to: V3, color: Color) {
-        self.r
-            .draw_line((from).project_2d(), (to).project_2d(), color);
+        self.r.draw_line(from.project_2d(), to.project_2d(), color);
     }
 
     pub fn draw_triangle(&mut self, triangle: Triangle3, color: Color) {
@@ -55,7 +54,10 @@ impl<'r, R: Renderer> R3d<'r, R> {
             let normal_vector = face.normal_vector();
             let pxyz = face.0 + normal_vector;
             self.draw_line(face.0 + pos, pxyz + pos, Color::WED);
-            if normal_vector.2 < 0.0 {
+
+            let bingbongvector = face.0 - CAMERA_POS + pos;
+            self.draw_line(face.0 + pos, V3(0.0, 0.0, -0.99), Color::WED);
+            if normal_vector.dot(bingbongvector) < 0.0 {
                 self.draw_triangle(face.translate(pos - CAMERA_POS), outline_color);
             }
         }

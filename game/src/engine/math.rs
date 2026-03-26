@@ -20,6 +20,11 @@ impl V3 {
         let V3(bx, by, bz) = rhs;
         Self(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx)
     }
+    pub fn dot(&self, rhs: Self) -> f64 {
+        let V3(ax, ay, az) = self;
+        let V3(bx, by, bz) = rhs;
+        ax * bx + ay * by + az * bz
+    }
 }
 
 impl Add for V3 {
