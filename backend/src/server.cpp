@@ -1,5 +1,4 @@
 #include "server.hpp"
-#include "errno_shim.hpp"
 #include "event_loop.hpp"
 #include <print>
 #include <sys/epoll.h>
@@ -30,7 +29,7 @@ auto Server::bind(
         return std::unexpected(x.error());
     }
     auto listener = x.value();
-    auto res = mgr.register_event(event::Server, Server(listener), listener.fd);
+    auto res = mgr.register_event(Server(listener), listener.fd);
     if (!res) {
         return std::unexpected(res.error());
     }
@@ -42,8 +41,8 @@ auto Server::wake(event::Manager& mgr) -> Result<void>
     auto x = this->listener.accept();
     auto connection = x.value();
 
-    auto res = mgr.register_event(
-        event::Client, mst::Client(*this, connection), connection.fd);
+    auto res
+        = mgr.register_event(mst::Client(*this, connection), connection.fd);
 
     if (!res) {
         return std::unexpected(res.error());

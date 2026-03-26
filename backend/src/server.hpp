@@ -5,6 +5,10 @@
 
 namespace mst {
 
+namespace event {
+    class Manager;
+}
+
 class Server {
 public:
     auto wake(mst::event::Manager& mgr) -> Result<void>;

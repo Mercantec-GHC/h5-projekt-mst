@@ -1,11 +1,11 @@
 #include "event_loop.hpp"
 #include "errno_shim.hpp"
 #include "server.hpp"
-#include <print>
 #include <sys/epoll.h>
+#include <utility>
+#include <variant>
 
 namespace mst::event {
-
 auto Manager::start() -> Result<void>
 {
     epoll_event events[128] = { };
@@ -15,27 +15,28 @@ auto Manager::start() -> Result<void>
             return std::unexpected(errno_shim("could not poll"));
         }
         for (int i = 0; i < events_len; ++i) {
-            auto event = (event::Event*)events[i].data.ptr;
-
-            switch (event->variant) {
-                case event::Server: {
-                    auto ptr = (mst::Server*)event->data;
-                    auto res = ptr->wake(*this);
-                    if (!res) {
-                        return std::unexpected(res.error());
-                    }
-
-                    break;
-                }
-                case event::Client: {
-                    std::println("client call scheduled");
-                    auto ptr = (mst::Client*)event->data;
-                    auto res = ptr->wake();
+            auto event = (mst::event::Event*)events[i].data.ptr;
+            switch (event->data.index()) {
+                case 0: {
+                    auto& ref
+                        = std::get<std::unique_ptr<mst::Server>>(event->data);
+                    auto res = ref->wake(*this);
                     if (!res) {
                         return std::unexpected(res.error());
                     }
                     break;
                 }
+                case 1: {
+                    auto& ref
+                        = std::get<std::unique_ptr<mst::Client>>(event->data);
+                    auto res = ref->wake();
+                    if (!res) {
+                        return std::unexpected(res.error());
+                    }
+                    break;
+                }
+                default:
+                    std::unreachable();
             }
         }
     }
