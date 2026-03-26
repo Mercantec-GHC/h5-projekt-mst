@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use crate::engine::{Color, R3d, V3};
+use crate::engine::{Color, R3d, Shape, Triangle3, V3};
 
 mod engine;
 
@@ -15,6 +15,9 @@ impl<R: engine::Renderer> engine::Object<R> for MyObject {
         match self {
             MyObject::Player { pos, vel } => {
                 *pos += *vel * delta_time.as_secs_f64();
+                if pos.0 >= 1.0 {
+                    pos.0 = -1.0;
+                }
             }
         }
     }
@@ -23,10 +26,27 @@ impl<R: engine::Renderer> engine::Object<R> for MyObject {
         match self {
             MyObject::Player { pos, .. } => {
                 let mut r3d = R3d::new(r);
-                r3d.draw_cube(*pos, V3(0.2, 0.2, 0.2), Color::GREEN, Color::WHITE);
-                r3d.draw_cube(
+
+                for z in 0..10 {
+                    for x in -10..10 {
+                        r3d.draw_shape(
+                            V3(x as f64 * 0.1, -0.5, z as f64 * 0.1),
+                            &Shape::new_plane(V3(0.1, 0.0, 0.1)),
+                            Color::CYAN,
+                            Color::WHITE,
+                        );
+                    }
+                }
+
+                r3d.draw_shape(
+                    *pos + V3(0.0, 0.2, 0.0),
+                    &Shape::new_cube(V3(0.2, 0.1, 0.2)),
+                    Color::GREEN,
+                    Color::WHITE,
+                );
+                r3d.draw_shape(
                     *pos + V3(-0.4, -0.2, 0.0),
-                    V3(0.2, 0.2, 0.2),
+                    &Shape::new_cube(V3(0.2, 0.2, 0.2)),
                     Color::GREEN,
                     Color::WHITE,
                 );
@@ -40,8 +60,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut game = engine::Game::<engine::SdlIo, MyObject>::new()?;
 
     let player = MyObject::Player {
-        pos: V3(-0.1, -0.1, 0.0),
-        vel: V3(0.0, 0.1, 0.0),
+        pos: V3(0.0, -0.1, 0.0),
+        vel: V3(0.4, 0.0, 0.0),
     };
     game.spawn(player);
 

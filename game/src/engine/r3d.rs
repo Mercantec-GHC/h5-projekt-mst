@@ -22,6 +22,11 @@ impl Triangle3 {
             self.2.project_2d(),
         )
     }
+
+    pub fn middle(&self) -> V3 {
+        let m1 = self.0 + (self.1 - self.0).map(|v| v / 2.0);
+        m1 + (self.2 - m1).map(|v| v / 2.0)
+    }
 }
 
 pub struct R3d<'r, R: Renderer> {
@@ -47,13 +52,16 @@ impl<'r, R: Renderer> R3d<'r, R> {
         self.r.draw_line(triangle.2, triangle.0, color);
     }
 
-    pub fn draw_cube(&mut self, pos: V3, size: V3, outline_color: Color, fill_color: Color) {
-        let shape = Shape::new_cube(size);
-
+    pub fn draw_shape(&mut self, pos: V3, shape: &Shape, outline_color: Color, fill_color: Color) {
         for face in shape.faces() {
             let normal_vector = face.normal_vector();
-            let pxyz = face.0 + normal_vector;
-            self.draw_line(face.0 + pos, pxyz + pos, Color::WED);
+            let pxyz = face.middle() + normal_vector;
+            self.draw_line(face.middle() + pos, pxyz + pos, Color::RED);
+            // self.draw_line(
+            //     face.middle() + pos,
+            //     face.middle() + face.0.unit() * 0.1 + pos,
+            //     Color::HEX(0x33dd33),
+            // );
 
             let bingbongvector = face.0 - CAMERA_POS + pos;
             if normal_vector.dot(bingbongvector) < 0.0 {
@@ -61,9 +69,9 @@ impl<'r, R: Renderer> R3d<'r, R> {
             }
         }
 
-        for vertex in shape.vertices() {
-            self.r
-                .draw_point((vertex + pos).project_2d(), outline_color);
-        }
+        // for vertex in shape.vertices() {
+        //     self.r
+        //         .draw_point((vertex + pos).project_2d(), outline_color);
+        // }
     }
 }

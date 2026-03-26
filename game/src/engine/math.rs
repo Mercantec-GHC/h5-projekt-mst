@@ -20,10 +20,23 @@ impl V3 {
         let V3(bx, by, bz) = rhs;
         Self(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx)
     }
+
     pub fn dot(&self, rhs: Self) -> f64 {
         let V3(ax, ay, az) = self;
         let V3(bx, by, bz) = rhs;
         ax * bx + ay * by + az * bz
+    }
+
+    pub fn len(&self) -> f64 {
+        f64::sqrt(self.0.powi(2) + self.1.powi(2) + self.2.powi(2))
+    }
+
+    pub fn unit(&self) -> V3 {
+        self.map(|v| v / self.len())
+    }
+
+    pub fn map<F: Fn(f64) -> f64>(&self, func: F) -> Self {
+        V3(func(self.0), func(self.1), func(self.2))
     }
 }
 

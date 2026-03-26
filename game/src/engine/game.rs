@@ -20,9 +20,11 @@ pub trait Renderer {
 
 #[derive(Clone, Copy)]
 pub enum Color {
+    HEX(u32),
     WHITE,
     GREEN,
-    WED,
+    RED,
+    CYAN,
 }
 
 pub enum Event {

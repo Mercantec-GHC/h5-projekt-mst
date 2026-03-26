@@ -148,9 +148,11 @@ impl From<V2> for FPoint {
 impl From<Color> for SdlColor {
     fn from(value: Color) -> Self {
         match value {
+            Color::HEX(v) => SdlColor::from_u32(&PixelFormat::BGR24, v),
             Color::WHITE => SdlColor::WHITE,
             Color::GREEN => SdlColor::GREEN,
-            Color::WED => SdlColor::RED,
+            Color::RED => SdlColor::RED,
+            Color::CYAN => SdlColor::CYAN,
         }
     }
 }

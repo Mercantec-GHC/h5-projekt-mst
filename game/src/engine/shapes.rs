@@ -1,4 +1,4 @@
-use crate::engine::{math::V3, Triangle3};
+use crate::engine::{math::V3, Triangle3, V2};
 
 static CUBE_VERTICES: [(i8, i8, i8); 8] = [
     (0, 1, 0), //  0 front top     left
@@ -47,6 +47,27 @@ static CUBE_FACES: [(usize, usize, usize); 12] = [
     (2, 6, 0),
 ];
 
+static PLANE_VERTICES: [(i8, i8, i8); 4] = [
+    //
+    (0, 0, 0),
+    (0, 0, 1),
+    (1, 0, 0),
+    (1, 0, 1),
+];
+static PLANE_EDGES: [(usize, usize); 5] = [
+    //
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (0, 2),
+    (1, 3),
+];
+static PLANE_FACES: [(usize, usize, usize); 2] = [
+    //
+    (0, 1, 2),
+    (3, 2, 1),
+];
+
 pub struct Shape {
     vertices: Vec<V3>,
     edges: Vec<(usize, usize)>,
@@ -54,6 +75,17 @@ pub struct Shape {
 }
 
 impl Shape {
+    pub fn new_plane(dim: V3) -> Self {
+        Self {
+            vertices: PLANE_VERTICES
+                .iter()
+                .map(|p| scale_i8_vertex(*p, &dim))
+                .collect(),
+            edges: Vec::from_iter(PLANE_EDGES),
+            faces: Vec::from_iter(PLANE_FACES),
+        }
+    }
+
     pub fn new_cube(dim: V3) -> Self {
         Self {
             vertices: CUBE_VERTICES
