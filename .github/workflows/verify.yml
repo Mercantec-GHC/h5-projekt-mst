@@ -51,5 +51,5 @@ jobs:
         export IDF_PYTHON_CHECK_CONSTRAINTS=yes
         ${IDF_PATH}/install.sh --enable-ci
         source ${IDF_PATH}/export.sh
-        idf.py compile
+        idf.py build
 
