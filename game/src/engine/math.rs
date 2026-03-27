@@ -31,7 +31,7 @@ impl V3 {
         f64::sqrt(self.0.powi(2) + self.1.powi(2) + self.2.powi(2))
     }
 
-    pub fn unit(&self) -> V3 {
+    pub fn unit(&self) -> Self {
         self.map(|v| v / self.len())
     }
 
@@ -39,9 +39,13 @@ impl V3 {
         V3(func(self.0), func(self.1), func(self.2))
     }
 
-    pub fn rotate(&self, rot: V3) -> Self {
+    pub fn rotate(&self, rot: Self) -> Self {
         M3x3::new_rotate_z(rot.2)
             * (M3x3::new_rotate_y(rot.1) * (M3x3::new_rotate_x(rot.0) * *self))
+    }
+
+    pub fn distance(&self, rhs: Self) -> f64 {
+        (*self - rhs).len()
     }
 }
 
@@ -124,6 +128,10 @@ impl Triangle3 {
 
     pub fn middle(&self) -> V3 {
         (self.0 + self.1 + self.2).map(|v| v / 3.0)
+    }
+
+    pub fn points(&self) -> [V3; 3] {
+        [self.0, self.1, self.2]
     }
 }
 

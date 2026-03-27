@@ -48,7 +48,7 @@ impl SdlIo {
         })
     }
 
-    pub fn run<O: game::Object<Self>>(&mut self, game: &mut game::Game<Self, O>) {
+    pub fn run(&mut self, game: &mut impl game::Game<Self>) {
         let mut event_pump = self.sdl_context.event_pump().unwrap();
 
         let mut time_before = Instant::now();
@@ -150,6 +150,21 @@ impl Renderer for SdlIo {
             })
             .collect::<Vec<_>>();
 
+        self.canvas
+            .render_geometry(&vertices, None, VertexIndices::Sequential)
+            .unwrap();
+    }
+
+    fn draw_triangle(&mut self, triangle: Triangle2, color: Color) {
+        let vertices = [triangle.0, triangle.1, triangle.2]
+            .into_iter()
+            .map(|p| self.point_w2s(p))
+            .map(|p| Vertex {
+                position: p.into(),
+                color: color.into(),
+                tex_coord: FPoint::new(0.0, 0.0),
+            })
+            .collect::<Vec<_>>();
         self.canvas
             .render_geometry(&vertices, None, VertexIndices::Sequential)
             .unwrap();
