@@ -12,13 +12,13 @@ jobs:
     container: sfja/h5-mst-ci:latest
     steps:
     - uses: actions/checkout@v6
-    - name: check
+    - name: Check
       working-directory: ./backend
       run: make check
-    - name: build
+    - name: Build
       working-directory: ./backend
       run: make all
-    - name: test
+    - name: Test
       working-directory: ./backend
       run: make test
 
@@ -28,25 +28,27 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - run: rustup default stable
-    - name: check
+    - name: Check
       working-directory: ./game
       run: cargo check
-    - name: build
+    - name: Build
       working-directory: ./game
       run: cargo build
-    - name: test
+    - name: Test
       working-directory: ./game
       run: cargo test
 
   skateboard:
     runs-on: ubuntu-latest
-    container: espressif/idf:v5.5.4
+    container: espressif/idf:release-v5.5
     steps:
     - uses: actions/checkout@v6
-    - name: build
+    - name: Build
+      shell: bash
       working-directory: ./skateboard
       # https://github.com/espressif/esp-bsp/blob/master/.github/workflows/build-run-applications.yml
       run: |
+        export IDF_PYTHON_CHECK_CONSTRAINTS=yes
         ${IDF_PATH}/install.sh --enable-ci
         source ${IDF_PATH}/export.sh
         idf.py compile
