@@ -45,5 +45,5 @@ jobs:
     - uses: actions/checkout@v6
     - name: build
       working-directory: ./skateboard
-      run: idf all
+      run: idf.py all
 
