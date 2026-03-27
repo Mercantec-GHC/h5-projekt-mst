@@ -1,6 +1,6 @@
 FROM docker.io/alpine:3.23.3 AS builder
 WORKDIR /workspace
-RUN apk add make g++
+RUN apk add build-base
 COPY Makefile .
 COPY src src
 COPY tests tests
