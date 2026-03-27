@@ -42,8 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     container: espressif/idf:v5.5.4
     steps:
+    - name: activate esp-idf
+      run: . /opt/esp-idf/export.sh
     - uses: actions/checkout@v6
     - name: build
       working-directory: ./skateboard
-      run: /opt/esp/idf/tools/idf.py compile
+      run: idf.py compile
 
