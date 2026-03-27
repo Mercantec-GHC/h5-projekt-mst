@@ -5,6 +5,7 @@ use std::{f64, time::Duration};
 use crate::engine::{Color, R3d, Shape, V3};
 
 mod engine;
+mod vermiparous;
 
 enum MyObject {
     Player { pos: V3, vel: V3 },
