@@ -38,3 +38,12 @@ jobs:
       working-directory: ./game
       run: cargo test
 
+  skateboard:
+    runs-on: ubuntu-latest
+    container: espressif/idf:v5.5.4
+    steps:
+    - uses: actions/checkout@v6
+    - name: build
+      working-directory: ./skateboard
+      run: idf all
+
