@@ -36,8 +36,9 @@ Current subprojects:
 
 ## March 24
 - Created code to get data from the accel/gyro sensors.
-- Created a MQTT mesaage broker to send the accel/gyro data to a backend.
+- Send the accel/gyro data from board to a backend over MQTT.
 - Continued Work on the 3d rendering. Created points that if connected would look like a cube.
+- Backend and game ci pipelines.
 
 ![alt text](docs/3d_rendered_points.png)
 ![alt text](docs/gyro_and_acceleration_data.png)
@@ -47,3 +48,17 @@ Current subprojects:
 - Backend can now receive data.
 - Continued working on 3d rendering with no luck.
 
+## March 26
+
+- Got 3d rendering working.
+- Refactored backend.
+
+![alt text](docs/jeg_er_picklerick.png)
+![alt text](docs/z_equals_0.png)
+![alt text](docs/3d_rendering_math.png)
+
+## March 27
+
+- Created a planning board
+
+![alt text](docs/planning_board.png)
