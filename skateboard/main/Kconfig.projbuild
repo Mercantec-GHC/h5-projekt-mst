@@ -1,0 +1,43 @@
+menu "Skateboard config"
+
+    config SKATEBOARD_WIFI_SSID
+        string "WIFI SSID"
+        default "myssid"
+
+    config SKATEBOARD_WIFI_PASSWORD
+        string "WIFI password"
+        default "mypassword"
+
+    config SKATEBOARD_WIFI_MAXIMUM_RETRIES
+        int "WIFI maximum connection retries"
+        default 5
+
+    choice MPU6050_I2C_ADDRESS
+        prompt "Select I2C address"
+        default MPU6050_I2C_ADDRESS_LOW
+        help
+            Select I2C address
+
+        config MPU6050_I2C_ADDRESS_LOW
+            bool "MPU6050_I2C_ADDRESS_LOW"
+            help
+                Choose this when ADDR pin is disconnected or connected to ground
+        config MPU6050_I2C_ADDRESS_HIGH
+            bool "MPU6050_I2C_ADDRESS_HIGH"
+            help
+                Choose this when ADDR pin is connected to VCC
+    endchoice
+
+    config MPU6050_SCL_GPIO
+        int "MPU6050 SCL GPIO Number"
+        default 12
+        help
+            GPIO number for I2C Master clock line.
+
+    config MPU6050_SDA_GPIO
+        int "MPU6050 SDA GPIO Number"
+        default 11
+        help
+            GPIO number for I2C Master data line.
+
+endmenu
