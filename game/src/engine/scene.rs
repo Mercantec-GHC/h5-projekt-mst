@@ -24,14 +24,14 @@ impl Scene {
                 .points()
                 .map(|p| p.distance(camera))
                 .into_iter()
-                .min_by(|a, b| a.total_cmp(b))
+                .max_by(|a, b| a.total_cmp(b))
                 .unwrap();
             let b = b
                 .triangle
                 .points()
                 .map(|p| p.distance(camera))
                 .into_iter()
-                .min_by(|a, b| a.total_cmp(b))
+                .max_by(|a, b| a.total_cmp(b))
                 .unwrap();
             b.total_cmp(&a)
         });
