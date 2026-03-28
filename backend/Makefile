@@ -5,9 +5,7 @@ CXX=g++
 LD=g++
 
 CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion
-LDFLAGS =
-
-# libraries = ""
+LDFLAGS = -lmosquitto
 
 # CXXFLAGS += $(shell pkg-config $(libraries) --cflags)
 # LDFLAGS += $(shell pkg-config $(libraries) --libs)
