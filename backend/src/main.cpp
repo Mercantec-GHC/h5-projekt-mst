@@ -2,6 +2,7 @@
 #include "mqtt.hpp"
 #include "server.hpp"
 #include <chrono>
+#include <cstdio>
 #include <iostream>
 #include <print>
 #include <span>
@@ -17,15 +18,16 @@ int main(void)
 {
     auto client = mst::mqtt::Client("localhost", 1883, "test", "1234");
 
-    client.subscribe("/", [&](std::string_view text) {
-        std::cout << std::format("Received '{}'\n", text);
+    client.subscribe("/skateboard/update", [&](std::string_view text) {
+        //
+        std::println("Skateboard: {}", text);
     });
 
     auto mqtt_thread = std::thread([&]() {
         try {
             client.run();
         } catch (mst::mqtt::Error& ex) {
-            std::cerr << std::format("MQTT Client failed: {}", ex.what());
+            std::println(stderr, "MQTT Client failed: {}", ex.what());
             std::abort();
         }
     });

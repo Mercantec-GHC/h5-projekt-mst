@@ -6,6 +6,7 @@
 #include <iostream>
 #include <mosquitto.h>
 #include <mutex>
+#include <print>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -27,8 +28,8 @@ static void lib_init()
     int minor;
     int revision;
     mosquitto_lib_version(&major, &minor, &revision);
-    std::cout << std::format(
-        "[MQTT] Initializing mosquitto {}.{}.{}\n", major, minor, revision);
+    std::println(
+        "[MQTT] Initializing mosquitto {}.{}.{}", major, minor, revision);
 
     if (mosquitto_lib_init() != MOSQ_ERR_SUCCESS)
         throw Error("failed to initialize");
@@ -46,7 +47,7 @@ static void lib_deinit()
     if (!mosquitto_initialized || use_count < 0)
         return;
 
-    std::cout << std::format("[MQTT] Deinitializing mosquitto\n");
+    std::println("[MQTT] Deinitializing mosquitto");
 
     mosquitto_lib_cleanup();
     mosquitto_initialized = false;
@@ -167,14 +168,15 @@ void Client::subscribe(
 {
     auto inst = static_cast<struct mosquitto*>(m_inst);
 
-    m_subscriptions.emplace_back(topic, std::move(func));
-
     if (auto status = mosquitto_subscribe(inst, NULL, topic.c_str(), 0);
         status != MOSQ_ERR_SUCCESS) {
 
         throw Error(std::format(
             "could not subscribe ({})", mosquitto_strerror(status)));
     }
+
+    std::println("[MQTT] Subscribed to '{}'", topic);
+    m_subscriptions.emplace_back(std::move(topic), std::move(func));
 }
 
 void Client::run()
@@ -201,22 +203,22 @@ void Client::cb_connect(int rc)
             "client could not connect ({})", mosquitto_reason_string(rc)));
     }
 
-    std::cout << std::format("[MQTT] Client connected\n");
+    std::println("[MQTT] Client connected");
 }
 
 void Client::cb_disconnect()
 {
-    std::cout << std::format("[MQTT] Client disconnected\n");
+    std::println("[MQTT] Client disconnected");
 }
 
 void Client::cb_publish()
 {
-    std::cout << std::format("[MQTT] Message published\n");
+    std::println("[MQTT] Message published");
 }
 
 void Client::cb_message(std::string_view topic, const void* data, size_t size)
 {
-    std::cout << std::format("[MQTT] Message received\n");
+    std::println("[MQTT] Message received");
 
     auto text = std::string_view(static_cast<const char*>(data), size);
 
@@ -229,12 +231,12 @@ void Client::cb_message(std::string_view topic, const void* data, size_t size)
 
 void Client::cb_subscribe()
 {
-    std::cout << std::format("[MQTT] Client subscribed\n");
+    std::println("[MQTT] Client subscribed");
 }
 
 void Client::cb_unsubscribe()
 {
-    std::cout << std::format("[MQTT] Client unsubscribed\n");
+    std::println("[MQTT] Client unsubscribed");
 }
 
 void Client::publish_raw(
