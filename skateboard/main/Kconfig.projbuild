@@ -1,16 +1,30 @@
 menu "Skateboard config"
 
-    config SKATEBOARD_WIFI_SSID
+    config WIFI_SSID
         string "WIFI SSID"
         default "myssid"
 
-    config SKATEBOARD_WIFI_PASSWORD
+    config WIFI_PASSWORD
         string "WIFI password"
         default "mypassword"
 
-    config SKATEBOARD_WIFI_MAXIMUM_RETRIES
+    config WIFI_MAXIMUM_RETRIES
         int "WIFI maximum connection retries"
         default 5
+
+    config MQTT_URL
+        string "MQTT URL"
+        default "mqtt://mqtt.eclipseprojects.io"
+        help
+            URL of the broker to connect to
+
+    config MQTT_USERNAME
+        string "MQTT Username"
+        default "test"
+
+    config MQTT_PASSWORD
+        string "MQTT Password"
+        default "1234"
 
     choice MPU6050_I2C_ADDRESS
         prompt "Select I2C address"

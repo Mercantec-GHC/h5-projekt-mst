@@ -1,41 +1,66 @@
 #include "app_mpu.h"
+#include "app_mqtt.h"
 #include "app_wifi.h"
+#include "esp_event.h"
 #include "esp_log.h"
+#include "esp_netif.h"
 #include "freertos/idf_additions.h"
-#include "i2cdev.h"
-#include "mpu6050.h"
 #include "nvs_flash.h"
 #include <stdbool.h>
+#include <stdio.h>
 
 const char* TAG = "skateboard";
 
 typedef struct App {
     AppWifi wifi;
     AppMpu mpu;
+    AppMqtt mqtt;
 } App;
+
+#define msg_buffer_capacity 1024
+char msg_buffer[msg_buffer_capacity];
+
+static void configure_cb(const char* topic,
+    size_t topic_size,
+    const void* data,
+    size_t data_size,
+    void* arg)
+{
+    App* app = arg;
+    (void)app;
+
+    ESP_LOGI(TAG, "Received configure event (%.*s)", (int)topic_size, topic);
+    ESP_LOGI(TAG, "Data: %.*s", (int)data_size, (const char*)data);
+}
 
 void app_main(void)
 {
     ESP_LOGI(TAG, "Initializing");
     ESP_LOGI(TAG, "IDF version: %s", esp_get_idf_version());
 
-    esp_err_t status = nvs_flash_init();
-    if (status == ESP_ERR_NVS_NO_FREE_PAGES
-        || status == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        status = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(status);
+    esp_log_level_set("mqtt_client", ESP_LOG_VERBOSE);
+    esp_log_level_set("mqtt_example", ESP_LOG_VERBOSE);
+    esp_log_level_set("transport_base", ESP_LOG_VERBOSE);
+    esp_log_level_set("esp-tls", ESP_LOG_VERBOSE);
+    esp_log_level_set("transport", ESP_LOG_VERBOSE);
+    esp_log_level_set("outbox", ESP_LOG_VERBOSE);
+
+    ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     App app = { 
         .wifi = {
-            .wifi_event_group = 0,
+            .event_group = 0,
             .wifi_retries = 0,
         }, 
     };
 
     app_wifi_init(&app.wifi);
     app_mpu_init(&app.mpu);
+    app_mqtt_init(&app.mqtt);
+
+    app_mqtt_subscribe(&app.mqtt, "/skateboard/configure", configure_cb, &app);
 
     ESP_LOGI(TAG, "Initialized");
     ESP_LOGI(TAG, "Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
@@ -54,10 +79,11 @@ void app_main(void)
         float temp;
         app_mpu_read_temperature(&app.mpu, &temp);
 
-        ESP_LOGI(TAG,
-            "Acceleration: x=% 7.2f y=% 7.2f z=% 7.2f "
-            "Rotation: x=% 7.1f y=% 7.1f z=% 7.1f "
-            "Temperature: % 2.1f",
+        int msg_size = snprintf(msg_buffer,
+            msg_buffer_capacity - 1,
+            "{ \"acceleration\": [%.4f, %.4f, %.4f], "
+            "\"rotation\": [%.4f, %.4f, %.4f], "
+            "\"temperature\": %.2f }",
             accel_x,
             accel_y,
             accel_z,
@@ -65,6 +91,8 @@ void app_main(void)
             rotation_y,
             rotation_z,
             temp);
+
+        app_mqtt_publish(&app.mqtt, "/skateboard/update", msg_buffer, msg_size);
 
         vTaskDelay(pdMS_TO_TICKS(200));
     }

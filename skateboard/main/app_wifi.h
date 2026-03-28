@@ -3,7 +3,7 @@
 #include "freertos/idf_additions.h"
 
 typedef struct AppWifi {
-    EventGroupHandle_t wifi_event_group;
+    EventGroupHandle_t event_group;
     int wifi_retries;
 } AppWifi;
 
