@@ -63,7 +63,7 @@ test: $(test_targets)
 
 $(build_dir)/$(test_dir)/test_%: $(test_objects) $(objects_without_main)
 	@mkdir -p $(dir $@)
-	$(LD) -o $@ $(CXXFLAGS) $(LDFLAGS) $^
+	$(LD) -o $@ $(CXXFLAGS) $^ $(LDFLAGS)
 
 format:
 	clang-format -style=file -i src/*
