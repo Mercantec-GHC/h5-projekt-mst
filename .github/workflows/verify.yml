@@ -27,7 +27,6 @@ jobs:
     container: sfja/h5-mst-ci:latest
     steps:
     - uses: actions/checkout@v6
-    - run: rustup default stable
     - name: Check
       working-directory: ./game
       run: cargo check
