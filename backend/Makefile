@@ -9,8 +9,8 @@ LDFLAGS =
 
 libraries = libmosquitto
 
-CXXFLAGS += $(shell pkg-config $(libraries) --cflags)
-LDFLAGS += $(shell pkg-config $(libraries) --libs)
+CXXFLAGS += $(shell pkgconf $(libraries) --cflags --exists)
+LDFLAGS += $(shell pkgconf $(libraries) --libs --exists)
 
 RELEASE = 0
 GDB = 0
@@ -52,7 +52,7 @@ test_targets = $(test_sources:$(test_dir)/%.cpp=$(build_dir)/$(test_dir)/test_%)
 all: $(target) $(test_targets)
 
 $(target): $(objects)
-	$(LD) -o $@ $(CXXFLAGS) $(LDFLAGS) $^
+	$(LD) -o $@ $(CXXFLAGS) $^ $(LDFLAGS)
 
 $(obj_dir)/%.o:%.cpp
 	@mkdir -p $(dir $@)
