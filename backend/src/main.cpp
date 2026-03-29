@@ -16,16 +16,16 @@
 
 int main(void)
 {
-    auto client = mst::mqtt::Client("localhost", 1883, "test", "1234");
+    auto mqtt_client = mst::mqtt::Client("localhost", 1883, "test", "1234");
 
-    client.subscribe("/skateboard/update", [&](std::string_view text) {
+    mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         //
         std::println("Skateboard: {}", text);
     });
 
     auto mqtt_thread = std::thread([&]() {
         try {
-            client.run();
+            mqtt_client.run();
         } catch (mst::mqtt::Error& ex) {
             std::println(stderr, "MQTT Client failed: {}", ex.what());
             std::abort();
@@ -33,7 +33,7 @@ int main(void)
     });
 
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    client.publish("/", "published from c++");
+    mqtt_client.publish("/", "published from c++");
 
     auto mgr = mst::event::Manager::create().value();
     auto x = mst::Server::bind(mgr, "0.0.0.0", PORT);
