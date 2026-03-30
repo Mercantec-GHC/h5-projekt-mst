@@ -13,7 +13,7 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:game-ci
-    needs: [lint, build_and_test]
+    needs: ["lint", "build_and_test"]
     steps:
     - run: echo Done
   lint:
