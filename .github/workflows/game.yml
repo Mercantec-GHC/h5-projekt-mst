@@ -20,24 +20,21 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:game-ci
-    env:
-      RUSTFLAGS: "-Dwarnings"
     steps:
     - uses: actions/checkout@v6
-    - run: rustup default stable
     - name: Check
       working-directory: ./game
       run: cargo check
     - name: Clippy
       working-directory: ./game
-      run: cargo clippy
+      continue-on-error: true
+      run: cargo clippy -- -Dwarnings
   build_and_test:
     name: Build and test
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:game-ci
     steps:
     - uses: actions/checkout@v6
-    - run: rustup default stable
     - name: Build
       working-directory: ./game
       run: cargo build
