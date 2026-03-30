@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -267,7 +268,7 @@ public:
 
     auto write(std::ostream& stream,
         WriteProfile profile = WriteProfile::Minified) const;
-    auto to_string(WriteProfile profile = WriteProfile::Minified)
+    auto to_string(WriteProfile profile = WriteProfile::Minified) const
         -> std::string;
 
 private:
@@ -275,6 +276,56 @@ private:
     Data m_data;
 };
 
+inline auto operator==(const Value& lhs, const Value& rhs) -> bool
+{
+    if (lhs.type() != rhs.type())
+        return false;
+    switch (lhs.type()) {
+        case Type::Null:
+        case Type::False:
+        case Type::True:
+            return true;
+        case Type::I64:
+            return lhs.get_i64() == rhs.get_i64();
+        case Type::F64:
+            return lhs.get_f64() == rhs.get_f64();
+        case Type::String:
+            return lhs.get_string() == rhs.get_string();
+        case Type::Array:
+            if (lhs.size() != rhs.size())
+                return false;
+            for (size_t i = 0; i < lhs.size(); ++i)
+                if (lhs[i] != rhs[i])
+                    return false;
+            return true;
+        case Type::Object:
+            if (lhs.size() != rhs.size())
+                return false;
+            for (const auto& [key, val] : lhs.get_underlying_object()) {
+                if (!rhs.has(key))
+                    return false;
+                if (*val != rhs[key])
+                    return false;
+            }
+            return true;
+            break;
+    }
+    std::unreachable();
+}
+
 auto parse(std::string_view text) -> Result<std::unique_ptr<Value>>;
 
 }
+
+template <> struct std::formatter<mst::json::Value> {
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        return ctx.begin();
+    }
+
+    auto format(const mst::json::Value& value, std::format_context& ctx) const
+    {
+        return std::format_to(
+            ctx.out(), "{}", value.to_string(mst::json::WriteProfile::Pretty));
+    }
+};

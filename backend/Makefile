@@ -46,7 +46,6 @@ objects = $(objects_without_main) $(main_object)
 target = $(build_dir)/backend
 
 test_sources = $(shell find $(test_dir) -name '*.cpp')
-test_objects = $(test_sources:$(test_dir)/%.cpp=$(obj_dir)/$(test_dir)/%.o)
 test_targets = $(test_sources:$(test_dir)/%.cpp=$(build_dir)/$(test_dir)/test_%)
 
 all: $(target) $(test_targets)
@@ -61,7 +60,7 @@ $(obj_dir)/%.o:%.cpp
 test: $(test_targets)
 	printf "%s\n" $^ | xargs -I % sh -c 'echo "- %..." && ./% && echo "- %: OK" || (echo "- %: FAILED" && exit 1)'
 
-$(build_dir)/$(test_dir)/test_%: $(test_objects) $(objects_without_main)
+$(build_dir)/$(test_dir)/test_%: $(obj_dir)/tests/%.o $(objects_without_main)
 	@mkdir -p $(dir $@)
 	$(LD) -o $@ $(CXXFLAGS) $^ $(LDFLAGS)
 

@@ -47,7 +47,7 @@ public:
         Loc loc = { m_idx, m_line, m_col };
         size_t* i = &m_idx;
         if (*i >= m_len) [[unlikely]] {
-            return tok(TokTy::Eof, loc);
+            return Tok { TokTy::Eof, std::string_view(nullptr, 0), loc };
         }
         bool matched = false;
         while (*i < m_len && std::strchr(" \t\r\n", m_text[*i]) != NULL) {
@@ -139,7 +139,7 @@ private:
             }
             step();
         }
-        if (*i < m_len && m_text[*i] != '\n') [[unlikely]] {
+        if (*i < m_len && m_text[*i] == '\n') [[unlikely]] {
             return std::unexpected(Error { loc, "malformed string" });
         }
         if (*i >= m_len && m_text[*i] != '\"') [[unlikely]] {
@@ -167,7 +167,7 @@ auto literal_to_string(std::string_view text)
     -> Result<std::string, std::string>
 {
     auto result = std::string();
-    for (size_t i = 1; i < text.size() - 2; ++i) {
+    for (size_t i = 1; i < text.size() - 1; ++i) {
         if (text[i] == '\\') [[unlikely]] {
             i += 1;
             if (i >= text.size()) [[unlikely]] {
@@ -206,7 +206,8 @@ public:
     Parser(std::string_view text)
         : m_tokenizer(text)
     {
-        step().value();
+        auto result = step();
+        result.value();
     }
 
     auto parse() -> Result<std::unique_ptr<Value>>
@@ -711,7 +712,7 @@ auto Value::write(std::ostream& stream, WriteProfile profile) const
     }
 }
 
-auto Value::to_string(WriteProfile profile) -> std::string
+auto Value::to_string(WriteProfile profile) const -> std::string
 {
     auto stream = std::stringstream();
     if (profile == WriteProfile::Minified) {
