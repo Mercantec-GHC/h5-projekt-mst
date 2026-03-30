@@ -1,22 +1,32 @@
 #![allow(dead_code)]
 
-use std::time::Duration;
+use std::{
+    sync::{Arc, Mutex},
+    time::Duration,
+};
 
-use crate::engine::{Color, Renderer, Scene, Shape, V3};
+use crate::{
+    engine::{Color, Renderer, Scene, Shape, V3},
+    event_queue::EventQueue,
+    vermiparous::Server,
+};
 
 mod engine;
+mod event_queue;
 mod vermiparous;
 
 struct Game {
     objects: Vec<Object>,
     next_object_id: u32,
+    event_queue: Arc<Mutex<EventQueue>>,
 }
 
 impl Game {
-    fn new() -> Self {
+    fn new(event_queue: Arc<Mutex<EventQueue>>) -> Self {
         Self {
             objects: Vec::new(),
             next_object_id: 0,
+            event_queue,
         }
     }
 
@@ -81,7 +91,6 @@ impl Object {
                 *pos += *vel * delta_time.as_secs_f64();
             }
             ObjectKind::Ground { pos, vel_z } => {
-                println!("z pos {}", pos.2);
                 pos.2 += *vel_z * delta_time.as_secs_f64();
             }
         }
@@ -92,9 +101,7 @@ impl Object {
             ObjectKind::Player { pos, .. } => {
                 scene.draw_shape(
                     *pos,
-                    &Shape::new_cube(V3(0.2, 0.2, 0.2))
-                        .translate(V3(-0.1, -0.1, -0.1))
-                        .rotate(V3(pos.0 * 5.0, pos.0 * 5.0, pos.0 * 5.0)),
+                    &Shape::new_cube(V3(0.2, 0.2, 0.2)),
                     Color::Green,
                     Color::Black,
                 );
@@ -125,11 +132,16 @@ impl Object {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut sdl_io = engine::SdlIo::new()?;
-    let mut game = Game::new();
+    let event_queue = Arc::new(Mutex::new(EventQueue::new()));
+    let mut game = Game::new(event_queue.clone());
+    std::thread::spawn(move || {
+        let server = Server::bind("10.133.51.127:42069");
+        server.start(event_queue);
+    });
     let mut objects: Vec<ObjectKind> = Vec::new();
     objects.push(ObjectKind::Player {
-        pos: V3(-1.8, -0.3, 0.0),
-        vel: V3(0.4, 0.0, 0.0),
+        pos: V3(-0.3, -0.25, 0.0),
+        vel: V3(0.0, 0.0, 0.0),
     });
     objects.push(ObjectKind::Ground {
         pos: V3(0.0, -0.3, -0.5),
