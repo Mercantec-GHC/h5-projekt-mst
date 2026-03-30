@@ -3,7 +3,7 @@ name: Game
 on:
   push:
     branches: [ "main" ]
-    paths: [ "game/**" ]
+    paths: [ "game/**", ".github/**" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:

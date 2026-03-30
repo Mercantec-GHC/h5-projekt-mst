@@ -3,7 +3,7 @@ name: Backend
 on:
   push:
     branches: [ "main" ]
-    paths: [ "backend/**" ]
+    paths: [ "backend/**", ".github/**" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:

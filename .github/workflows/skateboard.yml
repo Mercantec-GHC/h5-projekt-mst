@@ -3,7 +3,7 @@ name: Skateboard
 on:
   push:
     branches: [ "main" ]
-    paths: [ "skateboard/**" ]
+    paths: [ "skateboard/**", ".github/**" ]
   pull_request:
     branches: [ "main" ]
   workflow_dispatch:
