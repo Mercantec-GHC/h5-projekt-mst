@@ -6,7 +6,7 @@ on:
     paths: [ "game/**" ]
   pull_request:
     branches: [ "main" ]
-  workflow_dispatch
+  workflow_dispatch:
 
 jobs:
   check:
