@@ -26,15 +26,15 @@
 int main(void)
 {
     auto mqtt_client
-        = mst::mqtt::Client("localhost", BACKEND_MQTT_PORT, "test", "1234");
+        = mst::mqtt::Client("10.133.51.127", BACKEND_MQTT_PORT, "test", "1234");
 
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         //
         std::println("Skateboard: {}", text);
-        auto parsed = mst::json::parse(text).value();
+        // auto parsed = mst::json::parse(text).value();
 
-        std::println(".acceleration[0]",
-            parsed->query(".acceleration[0]").value()->get_i64());
+        // std::println(".acceleration[0]",
+        //     parsed->query(".acceleration[0]").value()->get_i64());
     });
 
     auto mqtt_thread = std::thread([&]() {
