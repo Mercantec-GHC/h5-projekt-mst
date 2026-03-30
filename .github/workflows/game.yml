@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:game-ci
     needs: [lint, build_and_test]
+    steps:
   lint:
     name: Lint
     runs-on: ubuntu-latest
