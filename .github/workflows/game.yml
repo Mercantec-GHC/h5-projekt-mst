@@ -11,8 +11,11 @@ on:
 jobs:
   check:
     name: Check
+    runs-on: ubuntu-latest
+    container: sfja/h5-mst-ci:game-ci
     needs: [lint, build_and_test]
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:game-ci
     steps:
@@ -26,6 +29,7 @@ jobs:
       continue-on-error: true
       run: cargo clippy
   build_and_test:
+    name: Build and test
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:game-ci
     steps:
