@@ -1,0 +1,29 @@
+name: Game
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    container: sfja/h5-mst-ci:game-ci
+    steps:
+    - uses: actions/checkout@v6
+    - run: rustup default stable
+    - name: Check
+      working-directory: ./game
+      run: cargo check
+    - name: Clippy
+      working-directory: ./game
+      continue-on-error: true
+      run: cargo clippy
+    - name: Build
+      working-directory: ./game
+      run: cargo build
+    - name: Test
+      working-directory: ./game
+      run: cargo test
+

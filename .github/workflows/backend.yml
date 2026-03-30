@@ -1,0 +1,24 @@
+name: Backend
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    container: sfja/h5-mst-ci:backend-ci
+    steps:
+    - uses: actions/checkout@v6
+    - name: Check
+      working-directory: ./backend
+      run: make check
+    - name: Build
+      working-directory: ./backend
+      run: make all
+    - name: Test
+      working-directory: ./backend
+      run: make test
+

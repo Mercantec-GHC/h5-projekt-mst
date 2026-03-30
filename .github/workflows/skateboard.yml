@@ -1,0 +1,24 @@
+name: Skateboard
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    container: espressif/idf:release-v5.5
+    steps:
+    - uses: actions/checkout@v6
+    - name: Build
+      shell: bash
+      working-directory: ./skateboard
+      # https://github.com/espressif/esp-bsp/blob/master/.github/workflows/build-run-applications.yml
+      run: |
+        export IDF_PYTHON_CHECK_CONSTRAINTS=yes
+        ${IDF_PATH}/install.sh --enable-ci
+        source ${IDF_PATH}/export.sh
+        idf.py build
+
