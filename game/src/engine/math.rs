@@ -72,6 +72,14 @@ impl Mul<f64> for V3 {
     }
 }
 
+impl Mul<Self> for V3 {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Self(self.0 * rhs.0, self.1 * rhs.1, self.2 * rhs.2)
+    }
+}
+
 impl Add<&Self> for V3 {
     type Output = Self;
 
