@@ -23,10 +23,15 @@
 #define BACKEND_MQTT_PORT 1883
 #endif
 
+#ifndef BACKEND_MQTT_HOST
+#define BACKEND_MQTT_HOST "mosquitto"
+#endif
+
 int main(void)
 {
-    auto mqtt_client
-        = mst::mqtt::Client("10.133.51.127", BACKEND_MQTT_PORT, "test", "1234");
+
+    auto mqtt_client = mst::mqtt::Client(
+        BACKEND_MQTT_HOST, BACKEND_MQTT_PORT, "test", "1234");
 
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         //

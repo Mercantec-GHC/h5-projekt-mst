@@ -4,7 +4,7 @@ MAKEFLAGS += -j16
 CXX=g++
 LD=g++
 
-CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion -ftemplate-backtrace-limit=0
+CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion
 LDFLAGS =
 
 libraries = libmosquitto
@@ -28,6 +28,11 @@ endif
 ASAN = 0
 ifeq ($(ASAN),1)
 	CXXFLAGS += -fsanitize=address
+endif
+
+MQTT_HOST=
+ifneq ($(MQTT_HOST),)
+	CXXFLAGS += -DBACKEND_MQTT_HOST=\"$(MQTT_HOST)\"
 endif
 
 build_dir = build
