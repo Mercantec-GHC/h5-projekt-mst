@@ -31,6 +31,9 @@ jobs:
     - name: Check
       working-directory: ./game
       run: cargo check
+    - name: Clippy
+      working-directory: ./game
+      run: cargo clippy
     - name: Build
       working-directory: ./game
       run: cargo build
