@@ -1,4 +1,5 @@
 #include "event_loop.hpp"
+#include "json.hpp"
 #include "mqtt.hpp"
 #include "server.hpp"
 #include <chrono>
@@ -12,15 +13,28 @@
 #include <sys/types.h>
 #include <thread>
 
+#ifdef BACKEND_TCP_PORT
+#define PORT BACKEND_TCP_PORT
+#else
 #define PORT 8888
+#endif
+
+#ifndef BACKEND_MQTT_PORT
+#define BACKEND_MQTT_PORT 1883
+#endif
 
 int main(void)
 {
-    auto mqtt_client = mst::mqtt::Client("localhost", 1883, "test", "1234");
+    auto mqtt_client
+        = mst::mqtt::Client("localhost", BACKEND_MQTT_PORT, "test", "1234");
 
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         //
         std::println("Skateboard: {}", text);
+        auto parsed = mst::json::parse(text).value();
+
+        std::println(".acceleration[0]",
+            parsed->query(".acceleration[0]").value()->get_i64());
     });
 
     auto mqtt_thread = std::thread([&]() {

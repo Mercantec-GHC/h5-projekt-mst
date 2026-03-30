@@ -58,35 +58,6 @@ public:
     Value& operator=(const Value&) = delete;
     Value& operator=(Value&&) = delete;
 
-    static auto make_null() -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(Type::Null);
-    }
-    static auto make_bool(bool value) -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(value ? Type::True : Type::False);
-    }
-    static auto make_i64(I64 value) -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(Type::I64, value);
-    }
-    static auto make_f64(F64 value) -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(Type::F64, value);
-    }
-    static auto make_string(std::string value) -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(Type::String, std::move(value));
-    }
-    static auto make_array() -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(Type::Array, Array());
-    }
-    static auto make_object() -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(Type::Object, Object());
-    }
-
     explicit Value(Type type)
         : m_type(std::move(type))
         , m_data(std::monostate())
@@ -97,6 +68,35 @@ public:
         : m_type(std::move(type))
         , m_data(std::move(data))
     {
+    }
+
+    static auto make_null() -> std::unique_ptr<Value>
+    {
+        return std::make_unique<Value>(Type::Null);
+    }
+    static auto make_bool(bool value) -> std::unique_ptr<Value>
+    {
+        return std::make_unique<Value>(value ? Type::True : Type::False);
+    }
+    static auto make_i64(I64 value) -> std::unique_ptr<Value>
+    {
+        return std::make_unique<Value>(Type::I64, Data(value));
+    }
+    static auto make_f64(F64 value) -> std::unique_ptr<Value>
+    {
+        return std::make_unique<Value>(Type::F64, Data(value));
+    }
+    static auto make_string(std::string value) -> std::unique_ptr<Value>
+    {
+        return std::make_unique<Value>(Type::String, Data(std::move(value)));
+    }
+    static auto make_array() -> std::unique_ptr<Value>
+    {
+        return std::make_unique<Value>(Type::Array, Data(Array()));
+    }
+    static auto make_object() -> std::unique_ptr<Value>
+    {
+        return std::make_unique<Value>(Type::Object, Data(Object()));
     }
 
     inline auto type() const -> Type
@@ -191,11 +191,6 @@ public:
         return get_underlying_object().contains(key);
     }
 
-    inline auto clone() const -> std::unique_ptr<Value>
-    {
-        return std::make_unique<Value>(m_type, Data(m_data));
-    }
-
     inline auto push(std::unique_ptr<Value> value)
     {
         get_underlying_array().push_back(std::move(value));
@@ -264,12 +259,12 @@ public:
         m_data = Object();
     }
 
+    auto clone() const -> std::unique_ptr<Value>;
+
     auto query(std::string_view path) & -> Result<Value*, std::string>;
     auto query(
         std::string_view path) const& -> Result<const Value*, std::string>;
 
-    auto write(
-        std::FILE* file, WriteProfile profile = WriteProfile::Minified) const;
     auto write(std::ostream& stream,
         WriteProfile profile = WriteProfile::Minified) const;
     auto to_string(WriteProfile profile = WriteProfile::Minified)

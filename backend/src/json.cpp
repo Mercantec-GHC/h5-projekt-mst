@@ -131,13 +131,16 @@ private:
     auto make_string_tok(Loc loc, size_t* i) -> Result<Tok>
     {
         step();
-        while (*i < m_len && m_text[*i] != '\"') {
+        while (*i < m_len && m_text[*i] != '\"' && m_text[*i] != '\n') {
             if (m_text[*i] == '\\') {
                 step();
                 if (*i >= m_len)
                     break;
             }
             step();
+        }
+        if (*i < m_len && m_text[*i] != '\n') [[unlikely]] {
+            return std::unexpected(Error { loc, "malformed string" });
         }
         if (*i >= m_len && m_text[*i] != '\"') [[unlikely]] {
             return std::unexpected(Error { loc, "malformed string" });
@@ -570,7 +573,7 @@ auto string_to_literal(std::string_view text) -> std::string
 template <typename Writer> void write_indent(Writer& writer, int depth)
 {
     for (int i = 0; i < depth; ++i) {
-        std::format(writer, "  ");
+        writer << "  ";
     }
 }
 
@@ -579,70 +582,70 @@ void write(Writer& writer, const Value& node, int depth = 0)
 {
     switch (node.type()) {
         case Type::Null:
-            std::format(writer, "null");
+            writer << "null";
             break;
         case Type::False:
-            std::format(writer, "false");
+            writer << "false";
             break;
         case Type::True:
-            std::format(writer, "true");
+            writer << "true";
             break;
         case Type::I64:
-            std::format(writer, "{}", node.get_i64());
+            writer << std::format("{}", node.get_i64());
             break;
         case Type::F64:
-            std::format(writer, "{}", node.get_f64());
+            writer << std::format("{}", node.get_f64());
             break;
         case Type::String:
-            std::format(writer, "{}", string_to_literal(node.get_string()));
+            writer << string_to_literal(node.get_string());
             break;
         case Type::Array: {
-            std::format(writer, "[");
+            writer << "[";
             auto first = true;
             for (const auto& child : node.get_underlying_array()) {
                 if (!first) {
-                    std::format(writer, ",");
+                    writer << ",";
                 }
                 first = false;
 
                 if constexpr (profile == WriteProfile::Pretty) {
-                    std::format(writer, "\n");
+                    writer << "\n";
                     write_indent(writer, depth + 1);
                 }
-                write(writer, child, depth + 1);
+                write<Writer, profile>(writer, *child, depth + 1);
             }
             if constexpr (profile == WriteProfile::Pretty) {
-                std::format(writer, "\n");
+                writer << "\n";
                 write_indent(writer, depth);
             }
-            std::format(writer, "]");
+            writer << "]";
             break;
         }
         case Type::Object: {
-            std::format(writer, "{");
+            writer << "{";
             auto first = true;
             for (const auto& [key, child] : node.get_underlying_object()) {
                 if (!first) {
-                    std::format(writer, ",");
+                    writer << ",";
                 }
                 first = false;
 
                 if constexpr (profile == WriteProfile::Pretty) {
-                    std::format(writer, "\n");
+                    writer << "\n";
                     write_indent(writer, depth + 1);
                 }
-                write(writer, string_to_literal(key));
-                write(writer, ":");
+                writer << string_to_literal(key);
+                writer << ":";
                 if constexpr (profile == WriteProfile::Pretty) {
-                    std::format(writer, " ");
+                    writer << " ";
                 }
-                write(writer, child, depth + 1);
+                write<Writer, profile>(writer, *child, depth + 1);
             }
             if constexpr (profile == WriteProfile::Pretty) {
-                std::format(writer, "\n");
+                writer << "\n";
                 write_indent(writer, depth);
             }
-            std::format(writer, "}");
+            writer << "}";
             break;
         }
     }
@@ -651,6 +654,40 @@ void write(Writer& writer, const Value& node, int depth = 0)
 }
 
 namespace mst::json {
+
+auto Value::clone() const -> std::unique_ptr<Value>
+{
+    switch (type()) {
+        case Type::Null:
+            return make_null();
+        case Type::False:
+            return make_bool(false);
+        case Type::True:
+            return make_bool(true);
+        case Type::I64:
+            return make_i64(get_i64());
+        case Type::F64:
+            return make_f64(get_f64());
+        case Type::String:
+            return make_string(get_string());
+        case Type::Array: {
+            auto array = Array();
+            for (const auto& val : get_underlying_array()) {
+                array.push_back(val->clone());
+            }
+            return std::make_unique<Value>(Type::Array, Data(std::move(array)));
+        }
+        case Type::Object: {
+            auto object = Object();
+            for (const auto& [key, val] : get_underlying_object()) {
+                object[key] = val->clone();
+            }
+            return std::make_unique<Value>(
+                Type::Object, Data(std::move(object)));
+        }
+    }
+    std::unreachable();
+}
 
 auto Value::query(std::string_view path) & -> Result<Value*, std::string>
 {
@@ -663,15 +700,6 @@ auto Value::query(
 {
     auto parser = query::Parser(path);
     return query::resolve(parser, *this);
-}
-
-auto Value::write(std::FILE* file, WriteProfile profile) const
-{
-    if (profile == WriteProfile::Minified) {
-        stringify::write<std::FILE*, WriteProfile::Minified>(file, *this);
-    } else {
-        stringify::write<std::FILE*, WriteProfile::Pretty>(file, *this);
-    }
 }
 
 auto Value::write(std::ostream& stream, WriteProfile profile) const

@@ -4,7 +4,7 @@ MAKEFLAGS += -j16
 CXX=g++
 LD=g++
 
-CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion
+CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion -ftemplate-backtrace-limit=0
 LDFLAGS =
 
 libraries = libmosquitto
