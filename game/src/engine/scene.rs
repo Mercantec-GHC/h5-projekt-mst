@@ -39,6 +39,9 @@ impl Scene {
         let drawn_triangles = self
             .objects
             .iter()
+            .filter(|v| {
+                v.triangle.0 .2 >= -1.0 && v.triangle.1 .2 >= -1.0 && v.triangle.2 .2 >= -1.0
+            })
             .map(|v| (v.triangle.project_2d(), v.outline_color, v.fill_color));
         for (triangle, outline_color, fill_color) in drawn_triangles {
             r.draw_triangle(triangle.clone(), fill_color);
