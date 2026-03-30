@@ -2,22 +2,12 @@ services:
   backend:
     image: docker.io/sfja/h5-mst-backend:latest
     ports:
-      - "8888:5000"
-  mqtt:
-    image: docker.io/rabbitmq:4.2.5-management
+      - "42069:5000"
+  mosquitto:
+    image: docker.io/eclipse-mosquitto
     ports:
       - "1883:1883"
-      - "5672:5672"
-      - "15672:15672"
-    command: "/bin/bash -c \"rabbitmq-plugins enable --offline rabbitmq_mqtt rabbitmq_web_mqtt rabbitmq_amqp1_0; rabbitmq-server\""
-    environment:
-      RABBITMQ_DEFAULT_USER: devops
-      RABBITMQ_DEFAULT_PASS: Merc1234
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-      - rabbitmq_log:/var/log/rabbitmq
-
-volumes:
-  rabbitmq_data:
-  rabbitmq_log:
+      - $PWD/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - $PWD/mqtt_users:/mosquitto/config/mqtt_users
 
