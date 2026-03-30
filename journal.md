@@ -60,5 +60,6 @@ Current subprojects:
 ## March 27
 
 - Created a planning board
+- Added a scene to game which renders objects in the right order.
 
 ![alt text](docs/planning_board.png)
