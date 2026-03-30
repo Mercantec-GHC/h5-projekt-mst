@@ -3,11 +3,13 @@ name: Backend
 on:
   push:
     branches: [ "main" ]
+    paths: [ "backend/**" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  verify:
+  check:
+    name: Check
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:backend-ci
     steps:

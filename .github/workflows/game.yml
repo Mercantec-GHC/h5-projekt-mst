@@ -3,11 +3,15 @@ name: Game
 on:
   push:
     branches: [ "main" ]
+    paths: [ "game/**" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  verify:
+  check:
+    name: Check
+    needs: [lint, build_and_test]
+  lint:
     runs-on: ubuntu-latest
     container: sfja/h5-mst-ci:game-ci
     steps:
@@ -20,6 +24,12 @@ jobs:
       working-directory: ./game
       continue-on-error: true
       run: cargo clippy
+  build_and_test:
+    runs-on: ubuntu-latest
+    container: sfja/h5-mst-ci:game-ci
+    steps:
+    - uses: actions/checkout@v6
+    - run: rustup default stable
     - name: Build
       working-directory: ./game
       run: cargo build
