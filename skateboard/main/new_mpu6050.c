@@ -68,7 +68,7 @@ typedef enum : uint8_t {
 } Mask;
 
 static esp_err_t read_regs(
-    Mpu6050* dev, uint8_t* out_data, size_t data_size, Reg reg)
+    Mpu6050* dev, void* out_data, size_t data_size, Reg reg)
 {
     return i2c_master_transmit_receive(
         dev->i2c_dev, &reg, 1, out_data, data_size, DEFAULT_TIMEOUT);
@@ -140,12 +140,14 @@ esp_err_t new_mpu6050_init(Mpu6050* dev)
     }
     ESP_LOGI(TAG, "Found MPU6050 device");
 
+    dev->gyro_range = MPU6050_GYRO_RANGE_250;
+    dev->accel_range = MPU6050_ACCEL_RANGE_2;
+
     CHECK(new_mpu6050_set_clock_source(dev, MPU6050_CLKSEL_PLL_GYRO_X_REF));
 
     CHECK(new_mpu6050_set_sleep_enabled(dev, false));
 
-    dev->gyro_range = MPU6050_GYRO_RANGE_250;
-    dev->accel_range = MPU6050_ACCEL_RANGE_2;
+    CHECK(new_mpu6050_set_sample_rate_div(dev, 7));
 
     return ESP_OK;
 }
@@ -162,9 +164,12 @@ esp_err_t new_mpu6050_get_rotation(Mpu6050* dev, float3* rotation)
     uint8_t buffer[6];
     CHECK(read_regs(dev, buffer, 6, REG_GYRO_XOUT_H));
 
-    rotation->x = (buffer[0] << 8 | buffer[1]) * resolution[dev->gyro_range];
-    rotation->y = (buffer[2] << 8 | buffer[3]) * resolution[dev->gyro_range];
-    rotation->z = (buffer[4] << 8 | buffer[5]) * resolution[dev->gyro_range];
+    rotation->x
+        = (int16_t)(buffer[0] << 8 | buffer[1]) * resolution[dev->gyro_range];
+    rotation->y
+        = (int16_t)(buffer[2] << 8 | buffer[3]) * resolution[dev->gyro_range];
+    rotation->z
+        = (int16_t)(buffer[4] << 8 | buffer[5]) * resolution[dev->gyro_range];
 
     return ESP_OK;
 }
@@ -181,9 +186,12 @@ esp_err_t new_mpu6050_get_acceleration(Mpu6050* dev, float3* accel)
     uint8_t buffer[6];
     CHECK(read_regs(dev, buffer, 6, REG_ACCEL_XOUT_H));
 
-    accel->x = (buffer[0] << 8 | buffer[1]) * resolution[dev->accel_range];
-    accel->y = (buffer[2] << 8 | buffer[3]) * resolution[dev->accel_range];
-    accel->z = (buffer[4] << 8 | buffer[5]) * resolution[dev->accel_range];
+    accel->x
+        = (int16_t)(buffer[0] << 8 | buffer[1]) * resolution[dev->accel_range];
+    accel->y
+        = (int16_t)(buffer[2] << 8 | buffer[3]) * resolution[dev->accel_range];
+    accel->z
+        = (int16_t)(buffer[4] << 8 | buffer[5]) * resolution[dev->accel_range];
 
     return ESP_OK;
 }
