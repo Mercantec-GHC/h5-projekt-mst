@@ -41,28 +41,29 @@ void app_mpu_init(AppMpu* mpu)
     }
 
     ESP_ERROR_CHECK(mpu6050_init(&mpu->dev));
-
-    ESP_LOGI(TAG, "MPU6050 acceleration range: %d", mpu->dev.ranges.accel);
-    ESP_LOGI(TAG, "MPU6050 gyroscope range:    %d", mpu->dev.ranges.gyro);
+    ESP_ERROR_CHECK(mpu6050_set_rate(&mpu->dev, 7));
 }
 
-void app_mpu_read_acceleration(AppMpu* mpu, float* x, float* y, float* z)
+void app_mpu_read_acceleration(AppMpu* mpu, float3* out_accel)
 {
     mpu6050_acceleration_t acceleration = { 0 };
+
     ESP_ERROR_CHECK(mpu6050_get_acceleration(&mpu->dev, &acceleration));
-    *x = acceleration.x;
-    *y = acceleration.y;
-    *z = acceleration.z;
+
+    out_accel->x = acceleration.x;
+    out_accel->y = acceleration.y;
+    out_accel->z = acceleration.z;
 }
 
-void app_mpu_read_rotation(AppMpu* mpu, float* x, float* y, float* z)
+void app_mpu_read_rotation(AppMpu* mpu, float3* out_rotation)
 {
     mpu6050_rotation_t rotation = { 0 };
 
     ESP_ERROR_CHECK(mpu6050_get_rotation(&mpu->dev, &rotation));
-    *x = rotation.x;
-    *y = rotation.y;
-    *z = rotation.z;
+
+    out_rotation->x = rotation.x;
+    out_rotation->y = rotation.y;
+    out_rotation->z = rotation.z;
 }
 
 void app_mpu_read_temperature(AppMpu* mpu, float* degree_celsius)

@@ -1,4 +1,3 @@
-#include "app_mpu.h"
 #include "app_mqtt.h"
 #include "app_wifi.h"
 #include "esp_event.h"
@@ -9,12 +8,24 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#define NEW_DRIVER
+
+#ifndef NEW_DRIVER
+#include "app_mpu.h"
+#else
+#include "new_mpu6050.h"
+#endif
+
 const char* TAG = "skateboard";
 
 typedef struct App {
     AppWifi wifi;
-    AppMpu mpu;
     AppMqtt mqtt;
+#ifndef NEW_DRIVER
+    AppMpu mpu;
+#else
+    Mpu6050 mpu;
+#endif
 } App;
 
 #define msg_buffer_capacity 1024
@@ -33,17 +44,53 @@ static void configure_cb(const char* topic,
     ESP_LOGI(TAG, "Data: %.*s", (int)data_size, (const char*)data);
 }
 
+static void publish_message(App* app)
+{
+    float3 accel = { 0 };
+#ifndef NEW_DRIVER
+    app_mpu_read_acceleration(&app->mpu, &accel);
+#else
+    ESP_ERROR_CHECK(new_mpu6050_get_acceleration(&app->mpu, &accel));
+#endif
+
+    float3 rotation = { 0 };
+#ifndef NEW_DRIVER
+    app_mpu_read_rotation(&app->mpu, &rotation);
+#else
+    ESP_ERROR_CHECK(new_mpu6050_get_rotation(&app->mpu, &rotation));
+#endif
+
+    float temp = 0;
+#ifndef NEW_DRIVER
+    app_mpu_read_temperature(&app->mpu, &temp);
+#else
+    ESP_ERROR_CHECK(new_mpu6050_read_temperature(&app->mpu, &temp));
+#endif
+
+    int msg_size = snprintf(msg_buffer,
+        msg_buffer_capacity - 1,
+        "{ \"acceleration\": [% 9.4f, % 9.4f, % 9.4f], "
+        "\"rotation\": [% 9.4f, % 9.4f, % 9.4f], "
+        "\"temperature\": % 5.2f }",
+        accel.x,
+        accel.y,
+        accel.z,
+        rotation.x,
+        rotation.y,
+        rotation.z,
+        temp);
+
+#if false
+    app_mqtt_publish(&app->mqtt, "/skateboard/update", msg_buffer, msg_size);
+#else
+    ESP_LOGI(TAG, "%.*s", (int)msg_size, msg_buffer);
+#endif
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "Initializing");
     ESP_LOGI(TAG, "IDF version: %s", esp_get_idf_version());
-
-    esp_log_level_set("mqtt_client", ESP_LOG_VERBOSE);
-    esp_log_level_set("mqtt_example", ESP_LOG_VERBOSE);
-    esp_log_level_set("transport_base", ESP_LOG_VERBOSE);
-    esp_log_level_set("esp-tls", ESP_LOG_VERBOSE);
-    esp_log_level_set("transport", ESP_LOG_VERBOSE);
-    esp_log_level_set("outbox", ESP_LOG_VERBOSE);
 
     ESP_ERROR_CHECK(nvs_flash_init());
     ESP_ERROR_CHECK(esp_netif_init());
@@ -56,44 +103,26 @@ void app_main(void)
         }, 
     };
 
-    app_wifi_init(&app.wifi);
-    app_mpu_init(&app.mpu);
-    app_mqtt_init(&app.mqtt);
+    // app_wifi_init(&app.wifi);
+    // app_mqtt_init(&app.mqtt);
 
-    app_mqtt_subscribe(&app.mqtt, "/skateboard/configure", configure_cb, &app);
+    ESP_LOGI(TAG, "=== Initializing MPU6050 ===");
+#ifndef NEW_DRIVER
+    app_mpu_init(&app.mpu);
+#else
+    ESP_ERROR_CHECK(new_mpu6050_init(&app.mpu));
+#endif
+    ESP_LOGI(TAG, "=== MPU6050 initialized ===");
+
+    // app_mqtt_subscribe(&app.mqtt, "/skateboard/configure", configure_cb,
+    // &app);
 
     ESP_LOGI(TAG, "Initialized");
     ESP_LOGI(TAG, "Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
 
     while (true) {
-        float accel_x;
-        float accel_y;
-        float accel_z;
-        app_mpu_read_acceleration(&app.mpu, &accel_x, &accel_y, &accel_z);
+        publish_message(&app);
 
-        float rotation_x;
-        float rotation_y;
-        float rotation_z;
-        app_mpu_read_rotation(&app.mpu, &rotation_x, &rotation_y, &rotation_z);
-
-        float temp;
-        app_mpu_read_temperature(&app.mpu, &temp);
-
-        int msg_size = snprintf(msg_buffer,
-            msg_buffer_capacity - 1,
-            "{ \"acceleration\": [%.4f, %.4f, %.4f], "
-            "\"rotation\": [%.4f, %.4f, %.4f], "
-            "\"temperature\": %.2f }",
-            accel_x,
-            accel_y,
-            accel_z,
-            rotation_x,
-            rotation_y,
-            rotation_z,
-            temp);
-
-        app_mqtt_publish(&app.mqtt, "/skateboard/update", msg_buffer, msg_size);
-
-        vTaskDelay(pdMS_TO_TICKS(200));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

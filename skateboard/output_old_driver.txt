@@ -1,0 +1,77 @@
+=== Initializing MPU6050 ===
+Calling i2cdev_init()
+Calling mpu6050_init_desc()
+Initializing MPU6050 device. Address: 0x68, SDA 11, SCL: 12
+Calling i2c_dev_probe()
+[Port 0] First initialization. Configuring bus with SDA=11, SCL=12 (Pullups SCL:0 SDA:0)
+Please check pull-up resistances whether be connected properly. Otherwise unexpected behavior would happen. For more detailed information, please read docs
+[Port 0] Successfully installed I2C master bus (Handle: 0x3fcec4d0).
+Found MPU6050 device
+Calling mpu6050_init()
+[0x68 at 0] Device added successfully (Device Handle: 0x3fcec9bc, Speed: 1000000 Hz).
+Called i2c_master_transmit_receive(write_size: 1, read_size: 1)
+write_buffer: { 0x6b }
+read_buffer: { 0x00 }
+Called i2c_master_transmit(write_size: 2)
+write_buffer: { 0x6b 0x01 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 1)
+write_buffer: { 0x1b }
+read_buffer: { 0x00 }
+Called i2c_master_transmit(write_size: 2)
+write_buffer: { 0x1b 0x00 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 1)
+write_buffer: { 0x1c }
+read_buffer: { 0x00 }
+Called i2c_master_transmit(write_size: 2)
+write_buffer: { 0x1c 0x00 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 1)
+write_buffer: { 0x6b }
+read_buffer: { 0x01 }
+Called i2c_master_transmit(write_size: 2)
+write_buffer: { 0x6b 0x01 }
+Calling mpu6050_set_rate()
+Called i2c_master_transmit(write_size: 2)
+write_buffer: { 0x19 0x07 }
+=== MPU6050 initialized ===
+Initialized
+Free memory: 368844 bytes
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x3b }
+read_buffer: { 0xfd 0x78 0xfe 0x74 0xcc 0x10 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x43 }
+read_buffer: { 0xff 0xa5 0x00 0x7a 0x00 0xd4 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 2)
+write_buffer: { 0x41 }
+read_buffer: { 0xf6 0xa0 }
+{ "acceleration": [  -0.0396,   -0.0242,   -0.8115], "rotation": [  -0.6943,    0.9308,    1.6174], "temper
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x3b }
+read_buffer: { 0xfd 0x4c 0xfe 0x90 0xca 0xc4 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x43 }
+read_buffer: { 0xff 0xb7 0x00 0x8f 0x00 0xde }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 2)
+write_buffer: { 0x41 }
+read_buffer: { 0xf6 0xa0 }
+{ "acceleration": [  -0.0422,   -0.0225,   -0.8318], "rotation": [  -0.5569,    1.0910,    1.6937], "tempe
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x3b }
+read_buffer: { 0xfc 0xec 0xfe 0x54 0xcb 0x54 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x43 }
+read_buffer: { 0xff 0xb8 0x00 0x7c 0x00 0xe5 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 2)
+write_buffer: { 0x41 }
+read_buffer: { 0xf6 0xa0 }
+{ "acceleration": [  -0.0481,   -0.0261,   -0.8230], "rotation": [  -0.5493,    0.9460,    1.7471], "temperature":  29.47 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x3b }
+read_buffer: { 0xfd 0x0c 0xfe 0x90 0xca 0x98 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 6)
+write_buffer: { 0x43 }
+read_buffer: { 0xff 0xbb 0x00 0x83 0x00 0xf2 }
+Called i2c_master_transmit_receive(write_size: 1, read_size: 2)
+write_buffer: { 0x41 }
+read_buffer: { 0xf6 0xa0 }
+{ "acceleration": [  -0.0461,   -0.0225,   -0.8345], "rotation": [  -0.5264,    0.9995,    1.8463], "temperature":  29.47 }
