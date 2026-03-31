@@ -56,7 +56,8 @@ typedef struct {
     i2c_master_dev_handle_t i2c_dev;
     Mpu6050_GyroRange gyro_range;
     Mpu6050_AccelRange accel_range;
-
+    float3 rotation_bias;
+    float3 accel_bias;
 } Mpu6050;
 
 esp_err_t new_mpu6050_init(Mpu6050* dev);
@@ -117,3 +118,5 @@ typedef enum : uint8_t {
 // Digital low pass filter (DLPF)
 // Note: Sampling rate is dependent on whether DLPF is enabled.
 esp_err_t new_mpu6050_set_dlpf(Mpu6050* dev, Mpu6050_DLPF selector);
+
+esp_err_t new_mpu6050_calibrate(Mpu6050* dev, const float3* initial_rotation);

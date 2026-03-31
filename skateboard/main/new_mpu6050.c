@@ -3,7 +3,9 @@
 #include "driver/i2c_types.h"
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/idf_additions.h"
+#include "freertos/projdefs.h"
 #include <assert.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -108,6 +110,8 @@ static esp_err_t write_bits(
 
 esp_err_t new_mpu6050_init(Mpu6050* dev)
 {
+    *dev = (Mpu6050) { 0 };
+
     i2c_master_bus_config_t bus_config = {
         .clk_source = I2C_CLK_SRC_DEFAULT,
         .i2c_port = I2C_NUM_0,
@@ -143,11 +147,13 @@ esp_err_t new_mpu6050_init(Mpu6050* dev)
     dev->gyro_range = MPU6050_GYRO_RANGE_250;
     dev->accel_range = MPU6050_ACCEL_RANGE_2;
 
+    vTaskDelay(pdMS_TO_TICKS(250));
+
     CHECK(new_mpu6050_set_clock_source(dev, MPU6050_CLKSEL_PLL_GYRO_X_REF));
 
     CHECK(new_mpu6050_set_sleep_enabled(dev, false));
 
-    CHECK(new_mpu6050_set_sample_rate_div(dev, 7));
+    CHECK(new_mpu6050_set_sample_rate_div(dev, 3));
 
     return ESP_OK;
 }
@@ -155,21 +161,24 @@ esp_err_t new_mpu6050_init(Mpu6050* dev)
 esp_err_t new_mpu6050_get_rotation(Mpu6050* dev, float3* rotation)
 {
     static const float resolution[] = {
-        [MPU6050_GYRO_RANGE_250] = 250.0f / 32768.0f,
-        [MPU6050_GYRO_RANGE_500] = 500.0f / 32768.0f,
-        [MPU6050_GYRO_RANGE_1000] = 1000.0f / 32768.0f,
-        [MPU6050_GYRO_RANGE_2000] = 2000.0f / 32768.0f,
+        [MPU6050_GYRO_RANGE_250] = 1.0f / 131.0f,
+        [MPU6050_GYRO_RANGE_500] = 1.0f / 65.5f,
+        [MPU6050_GYRO_RANGE_1000] = 1.0f / 32.8f,
+        [MPU6050_GYRO_RANGE_2000] = 1.0f / 16.4f,
     };
 
     uint8_t buffer[6];
     CHECK(read_regs(dev, buffer, 6, REG_GYRO_XOUT_H));
 
     rotation->x
-        = (int16_t)(buffer[0] << 8 | buffer[1]) * resolution[dev->gyro_range];
+        = (int16_t)(buffer[0] << 8 | buffer[1]) * resolution[dev->gyro_range]
+        - dev->rotation_bias.x;
     rotation->y
-        = (int16_t)(buffer[2] << 8 | buffer[3]) * resolution[dev->gyro_range];
+        = (int16_t)(buffer[2] << 8 | buffer[3]) * resolution[dev->gyro_range]
+        - dev->rotation_bias.y;
     rotation->z
-        = (int16_t)(buffer[4] << 8 | buffer[5]) * resolution[dev->gyro_range];
+        = (int16_t)(buffer[4] << 8 | buffer[5]) * resolution[dev->gyro_range]
+        - dev->rotation_bias.z;
 
     return ESP_OK;
 }
@@ -177,21 +186,24 @@ esp_err_t new_mpu6050_get_rotation(Mpu6050* dev, float3* rotation)
 esp_err_t new_mpu6050_get_acceleration(Mpu6050* dev, float3* accel)
 {
     static const float resolution[] = {
-        [MPU6050_ACCEL_RANGE_2] = 2.0f / 32768.0f,
-        [MPU6050_ACCEL_RANGE_4] = 4.0f / 32768.0f,
-        [MPU6050_ACCEL_RANGE_8] = 8.0f / 32768.0f,
-        [MPU6050_ACCEL_RANGE_16] = 16.0f / 32768.0f,
+        [MPU6050_ACCEL_RANGE_2] = 1.0f / 16384.0f,
+        [MPU6050_ACCEL_RANGE_4] = 1.0f / 1892.0f,
+        [MPU6050_ACCEL_RANGE_8] = 1.0f / 4096.0f,
+        [MPU6050_ACCEL_RANGE_16] = 1.0f / 2048.0f,
     };
 
     uint8_t buffer[6];
     CHECK(read_regs(dev, buffer, 6, REG_ACCEL_XOUT_H));
 
     accel->x
-        = (int16_t)(buffer[0] << 8 | buffer[1]) * resolution[dev->accel_range];
+        = (int16_t)(buffer[0] << 8 | buffer[1]) * resolution[dev->accel_range]
+        - dev->accel_bias.x;
     accel->y
-        = (int16_t)(buffer[2] << 8 | buffer[3]) * resolution[dev->accel_range];
+        = (int16_t)(buffer[2] << 8 | buffer[3]) * resolution[dev->accel_range]
+        - dev->accel_bias.y;
     accel->z
-        = (int16_t)(buffer[4] << 8 | buffer[5]) * resolution[dev->accel_range];
+        = (int16_t)(buffer[4] << 8 | buffer[5]) * resolution[dev->accel_range]
+        - dev->accel_bias.z;
 
     return ESP_OK;
 }
@@ -259,4 +271,94 @@ esp_err_t new_mpu6050_set_dlpf(Mpu6050* dev, Mpu6050_DLPF selector)
 {
     return write_bits(
         dev, REG_CONFIG, BIT_CONFIG_DLPF_CFG, MASK_CONFIG_DLPF_CFG, selector);
+}
+
+typedef struct {
+    Mpu6050* dev;
+    int count;
+    esp_err_t status;
+    float3 accel_acc;
+    float3 rotation_acc;
+    EventGroupHandle_t event_group;
+} Calibrator;
+
+#define CALIBRATION_COUNT_TOTAL 25
+
+static void calibrate_measure_cb(void* arg)
+{
+    Calibrator* calib = arg;
+
+    if (calib->status != ESP_OK || calib->count >= CALIBRATION_COUNT_TOTAL)
+        goto loop_break;
+
+    float3 accel;
+    calib->status = new_mpu6050_get_acceleration(calib->dev, &accel);
+
+    if (calib->status != ESP_OK)
+        goto loop_break;
+
+    float3 rotation;
+    calib->status = new_mpu6050_get_rotation(calib->dev, &rotation);
+
+    if (calib->status != ESP_OK)
+        goto loop_break;
+
+    calib->accel_acc.x += accel.x;
+    calib->accel_acc.y += accel.y;
+    calib->accel_acc.z += accel.z;
+
+    calib->rotation_acc.x += rotation.x;
+    calib->rotation_acc.y += rotation.y;
+    calib->rotation_acc.z += rotation.z;
+
+    calib->count += 1;
+    return;
+
+loop_break:
+    xEventGroupSetBits(calib->event_group, 1);
+}
+
+esp_err_t new_mpu6050_calibrate(Mpu6050* dev, const float3* initial_rotation)
+{
+
+    Calibrator calib = {
+        .dev = dev,
+        .event_group = xEventGroupCreate(),
+    };
+
+    esp_timer_handle_t timer;
+    esp_timer_create_args_t timer_config = {
+        .callback = calibrate_measure_cb,
+        .arg = &calib,
+    };
+    CHECK(esp_timer_create(&timer_config, &timer));
+
+    CHECK(esp_timer_start_periodic(timer, 40000));
+
+    xEventGroupWaitBits(calib.event_group,
+        1,
+        pdFALSE,
+        pdFALSE,
+        pdMS_TO_TICKS(CALIBRATION_COUNT_TOTAL * 40 * 2));
+
+    CHECK(calib.status);
+
+    CHECK(esp_timer_stop(timer));
+    CHECK(esp_timer_delete(timer));
+
+    dev->accel_bias.x = calib.accel_acc.x / (float)CALIBRATION_COUNT_TOTAL
+        - initial_rotation->x;
+    dev->accel_bias.y = calib.accel_acc.y / (float)CALIBRATION_COUNT_TOTAL
+        - initial_rotation->y;
+    dev->accel_bias.z = calib.accel_acc.z / (float)CALIBRATION_COUNT_TOTAL
+        - initial_rotation->z;
+
+    dev->rotation_bias.x
+        = calib.rotation_acc.x / (float)CALIBRATION_COUNT_TOTAL;
+    dev->rotation_bias.y
+        = calib.rotation_acc.y / (float)CALIBRATION_COUNT_TOTAL;
+    dev->rotation_bias.z
+        = calib.rotation_acc.z / (float)CALIBRATION_COUNT_TOTAL;
+
+    return ESP_OK;
 }
