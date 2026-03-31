@@ -63,3 +63,19 @@ Current subprojects:
 - Added a scene to game which renders objects in the right order.
 
 ![alt text](docs/planning_board.png)
+
+## March 30
+
+- Worked on driver for gyro/accelscope.
+- Deployment with docker compose and mosquitto.
+- Added a check in scene which made it not render objects behind the camera. 
+- 3d rendered a skateboard in game.
+- Started on creating an ansible deployment.
+
+## March 31
+
+- Worked on driver for gyro/accelscope.
+- Render ground infinitely by z axis in game.
+- Added keypressed to game to move the skateboard left and right.
+
+![alt text](docs/game_with_skateboard.png)
