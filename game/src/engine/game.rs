@@ -28,8 +28,15 @@ pub enum Color {
     Black,
 }
 
+#[derive(PartialEq, Eq, Hash)]
+pub enum Key {
+    Left,
+    Right,
+}
+
 pub enum Event {
-    Exit,
+    KeyUp { key: Key },
+    KeyDown { key: Key },
 }
 
 pub trait Game<R: Renderer> {

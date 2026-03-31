@@ -64,6 +64,39 @@ impl SdlIo {
                         keycode: Some(Keycode::Escape),
                         ..
                     } => break 'running,
+                    Event::KeyDown { keycode, .. } => match keycode {
+                        Some(key) => match key {
+                            Keycode::Left => {
+                                game.event(game::Event::KeyDown {
+                                    key: game::Key::Left,
+                                });
+                            }
+                            Keycode::Right => {
+                                game.event(game::Event::KeyDown {
+                                    key: game::Key::Right,
+                                });
+                            }
+                            _ => {}
+                        },
+                        None => {}
+                    },
+                    Event::KeyUp { keycode, .. } => match keycode {
+                        Some(key) => match key {
+                            Keycode::Left => {
+                                game.event(game::Event::KeyUp {
+                                    key: game::Key::Left,
+                                });
+                            }
+                            Keycode::Right => {
+                                game.event(game::Event::KeyUp {
+                                    key: game::Key::Right,
+                                });
+                            }
+                            _ => {}
+                        },
+                        None => {}
+                    },
+
                     _ => {}
                 }
             }
