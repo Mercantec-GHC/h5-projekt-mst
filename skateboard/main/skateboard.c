@@ -7,20 +7,51 @@
 #include "freertos/idf_additions.h"
 #include "mpu6050.h"
 #include "nvs_flash.h"
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 
 const char* TAG = "skateboard";
+
+typedef struct {
+    float3 rotation;
+    float3 uncertainty;
+} KalmanState;
+
+static void kalman_update_axis(
+    float* angle, float* uncertainty, float rotation_rate, float rotation)
+{
+    const float time_delta = 0.04f;
+    const float std_div0 = 4.0f;
+    const float std_div1 = 3.0f;
+
+    *angle += time_delta * rotation_rate;
+    *uncertainty += time_delta * time_delta * std_div0 * std_div0;
+    float gain = *uncertainty * 1 / (*uncertainty + std_div1 * std_div1);
+    *angle += gain * (rotation - *angle);
+    *uncertainty *= (1 - gain);
+}
+
+void kalman_update(KalmanState* state, float3 rotation_rate, float3 rotation)
+{
+    kalman_update_axis(
+        &state->rotation.x, &state->uncertainty.x, rotation_rate.x, rotation.x);
+    kalman_update_axis(
+        &state->rotation.y, &state->uncertainty.y, rotation_rate.y, rotation.y);
+    kalman_update_axis(
+        &state->rotation.z, &state->uncertainty.z, rotation_rate.z, rotation.z);
+}
 
 typedef struct App {
     AppWifi wifi;
     AppMqtt mqtt;
     Mpu6050 mpu;
 
-    float3 rotation_acc;
-    float3 accel_acc;
-    float time_acc;
     float last_temp;
+
+    float3 gyro_rotation;
+    float3 accel_rotation;
+    KalmanState kalman;
 } App;
 
 #define msg_buffer_capacity 1024
@@ -44,22 +75,30 @@ static void publish_message(App* app)
 
     int msg_size = snprintf(msg_buffer,
         msg_buffer_capacity - 1,
-        "{ \"acceleration\": [% 9.4f, % 9.4f, % 9.4f], "
-        "\"rotation\": [% 9.4f, % 9.4f, % 9.4f], "
-        "\"temperature\": % 5.2f }",
-        app->accel_acc.x,
-        app->accel_acc.y,
-        app->accel_acc.z,
-        app->rotation_acc.x,
-        app->rotation_acc.y,
-        app->rotation_acc.z,
-        app->last_temp);
+        "{  gyro: [% 9.4f, % 9.4f, % 9.4f], accel: [% 9.4f, % 9.4f, % 9.4f], "
+        "kalman: [% 9.4f, % 9.4f, % 9.4f] }",
+        app->gyro_rotation.x,
+        app->gyro_rotation.y,
+        app->gyro_rotation.z,
+        app->accel_rotation.x,
+        app->accel_rotation.y,
+        app->accel_rotation.z,
+        app->kalman.rotation.x,
+        app->kalman.rotation.y,
+        app->kalman.rotation.z);
 
 #if false
     app_mqtt_publish(&app->mqtt, "/skateboard/update", msg_buffer, msg_size);
 #else
     ESP_LOGI(TAG, "%.*s", (int)msg_size, msg_buffer);
 #endif
+}
+
+static float calculate_accel_axis_angle(
+    float axis, float tangent0, float tangent1)
+{
+    return atan(axis / sqrtf(tangent0 * tangent0 + tangent1 * tangent1))
+        * (1.0f / (M_PI / 180.0f));
 }
 
 static void mpu_timer_cb(void* arg)
@@ -76,15 +115,20 @@ static void mpu_timer_cb(void* arg)
     float temp = 0;
     ESP_ERROR_CHECK(mpu6050_read_temperature(&app->mpu, &temp));
 
-    app->accel_acc.x = accel.x;
-    app->accel_acc.y = accel.y;
-    app->accel_acc.z = accel.z;
-
-    app->rotation_acc.x = rotation.x;
-    app->rotation_acc.y = rotation.y;
-    app->rotation_acc.z = rotation.z;
+    app->gyro_rotation.x += rotation.x * 0.04;
+    app->gyro_rotation.y += rotation.y * 0.04;
+    app->gyro_rotation.z += rotation.z * 0.04;
 
     app->last_temp = temp;
+
+    app->accel_rotation.x
+        = calculate_accel_axis_angle(accel.x, accel.y, accel.z);
+    app->accel_rotation.y
+        = calculate_accel_axis_angle(accel.y, accel.x, accel.z);
+    app->accel_rotation.z = 0.0f;
+    // = calculate_accel_axis_angle(accel.z, accel.x, accel.y);
+
+    kalman_update(&app->kalman, rotation, app->accel_rotation);
 }
 
 void app_main(void)
@@ -127,6 +171,6 @@ void app_main(void)
     while (true) {
         publish_message(&app);
 
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(200));
     }
 }
