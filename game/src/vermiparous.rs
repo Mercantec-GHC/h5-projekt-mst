@@ -28,7 +28,7 @@ impl Server {
 
     fn get_fallible(data: &[f64], idx: usize) -> Result<f64, String> {
         data.get(idx)
-            .map(|idx| *idx)
+            .cloned()
             .ok_or_else(|| format!("protocol error: {idx}"))
     }
 
@@ -37,12 +37,12 @@ impl Server {
         let mut data = String::new();
         reader
             .read_line(&mut data)
-            .map_err(|err| format!("io error: {}", err.to_string()))?;
+            .map_err(|err| format!("io error: {err}"))?;
         let data = data
             .split(",")
             .map(|x| x.parse::<f64>())
             .collect::<Result<Vec<f64>, _>>();
-        let data = data.map_err(|err| format!("protocol error: {}", err.to_string()))?;
+        let data = data.map_err(|err| format!("protocol error: {err}"))?;
 
         Ok(Event::Skateboard {
             x: Self::get_fallible(&data, 0)?,

@@ -57,40 +57,25 @@ impl<R: Renderer> engine::Game<R> for Game {
     fn update(&mut self, delta_time: Duration) {
         for object in &mut self.objects {
             if self.keys_pressed.contains(&Key::Left) == self.keys_pressed.contains(&Key::Right) {
-                match &mut object.kind {
-                    ObjectKind::SkateBoard {
-                        pivot_deg: pivot_factor,
-                        ..
-                    } => {
-                        let decay_rate = 1.0 - (2.0 * delta_time.as_secs_f64());
-                        *pivot_factor *= decay_rate;
-                    }
-                    _ => {}
+                if let ObjectKind::SkateBoard { pivot_deg, .. } = &mut object.kind {
+                    let decay_rate = 1.0 - (2.0 * delta_time.as_secs_f64());
+                    *pivot_deg *= decay_rate;
                 }
             }
             if self.keys_pressed.contains(&Key::Left) {
-                match &mut object.kind {
-                    ObjectKind::SkateBoard { pivot_deg, .. } => {
-                        *pivot_deg -= 18.0 * delta_time.as_secs_f64();
-                        if *pivot_deg < -12.5 {
-                            *pivot_deg = -12.5;
-                        }
+                if let ObjectKind::SkateBoard { pivot_deg, .. } = &mut object.kind {
+                    *pivot_deg -= 18.0 * delta_time.as_secs_f64();
+                    if *pivot_deg < -12.5 {
+                        *pivot_deg = -12.5;
                     }
-                    _ => {}
                 }
             }
             if self.keys_pressed.contains(&Key::Right) {
-                match &mut object.kind {
-                    ObjectKind::SkateBoard {
-                        pivot_deg: pivot_factor,
-                        ..
-                    } => {
-                        *pivot_factor += 18.0 * delta_time.as_secs_f64();
-                        if *pivot_factor > 12.5 {
-                            *pivot_factor = 12.5;
-                        }
+                if let ObjectKind::SkateBoard { pivot_deg, .. } = &mut object.kind {
+                    *pivot_deg += 18.0 * delta_time.as_secs_f64();
+                    if *pivot_deg > 12.5 {
+                        *pivot_deg = 12.5;
                     }
-                    _ => {}
                 }
             }
 
@@ -214,8 +199,8 @@ impl Object {
             } => {
                 *pos += *vel * delta_time.as_secs_f64();
                 *vel += V3(vel.0, vel.1, vel.0 - 0.01 * delta_time.as_secs_f64());
-                if pos.2 <= original_pos.2 - *grid_depth as f64 * *grid_item_size as f64 {
-                    pos.2 += *grid_depth as f64 * *grid_item_size as f64
+                if pos.2 <= original_pos.2 - *grid_depth as f64 * *grid_item_size {
+                    pos.2 += *grid_depth as f64 * *grid_item_size
                 }
             }
         }
@@ -385,27 +370,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let server = Server::bind("10.133.51.127:5000");
         server.start(event_queue);
     });
-    let mut objects: Vec<ObjectKind> = Vec::new();
-    objects.push(ObjectKind::SkateBoard {
-        pos: V3(0.0, -0.1, -0.7),
-        vel: V3(0.0, 0.0, 0.0),
-        rot: V3(0.0, PI * 0.5, 0.0),
-        nyoom_factor: 0.0,
-        pivot_deg: 0.0,
-    });
-    objects.push(ObjectKind::Ground {
-        original_pos: V3(0.0, -0.25, -0.6),
-        pos: V3(0.0, -0.25, -0.6),
-        vel: V3(0.0, 0.0, -0.1),
-        rot: V3(0.0, 0.0, 0.0),
-        grid_item_size: 0.1,
-        grid_width: 10,
-        grid_depth: 10,
-    });
-    objects.push(ObjectKind::Obstacle {
-        pos: V3(0.5, -0.2, 0.0),
-        vel: V3(0.0, 0.0, -0.1),
-    });
+    let objects: Vec<ObjectKind> = vec![
+        ObjectKind::SkateBoard {
+            pos: V3(0.0, -0.1, -0.7),
+            vel: V3(0.0, 0.0, 0.0),
+            rot: V3(0.0, PI * 0.5, 0.0),
+            nyoom_factor: 0.0,
+            pivot_deg: 0.0,
+        },
+        ObjectKind::Ground {
+            original_pos: V3(0.0, -0.25, -0.6),
+            pos: V3(0.0, -0.25, -0.6),
+            vel: V3(0.0, 0.0, -0.1),
+            rot: V3(0.0, 0.0, 0.0),
+            grid_item_size: 0.1,
+            grid_width: 10,
+            grid_depth: 10,
+        },
+        ObjectKind::Obstacle {
+            pos: V3(0.5, -0.2, 0.0),
+            vel: V3(0.0, 0.0, -0.1),
+        },
+    ];
 
     for object in objects {
         game.spawn(object)
