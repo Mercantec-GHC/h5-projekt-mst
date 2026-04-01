@@ -13,9 +13,7 @@ use crate::{
     vermiparous::Server,
 };
 
-mod engine;
-mod event_queue;
-mod vermiparous;
+use crate::engine;
 
 struct Game {
     objects: Vec<Object>,
@@ -362,7 +360,7 @@ impl Object {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+pub fn game_main() -> Result<(), Box<dyn std::error::Error>> {
     let mut sdl_io = engine::SdlIo::new()?;
     let event_queue = Arc::new(Mutex::new(EventQueue::new()));
     let mut game = Game::new(event_queue.clone());
