@@ -18,35 +18,41 @@ impl Scene {
     }
 
     pub fn render<R: Renderer>(&mut self, r: &mut R, camera: V3) {
-        self.objects.sort_by(|a, b| {
-            let a = a
-                .triangle
-                .points()
-                .map(|p| p.distance(camera))
-                .into_iter()
-                .max_by(|a, b| a.total_cmp(b))
-                .unwrap();
-            let b = b
-                .triangle
-                .points()
-                .map(|p| p.distance(camera))
-                .into_iter()
-                .max_by(|a, b| a.total_cmp(b))
-                .unwrap();
-            b.total_cmp(&a)
-        });
-
-        let drawn_triangles = self
+        let mut indices_with_scores = self
             .objects
             .iter()
-            .filter(|v| {
-                v.triangle.0 .2 >= -1.0 && v.triangle.1 .2 >= -1.0 && v.triangle.2 .2 >= -1.0
+            .enumerate()
+            .map(|(i, object)| {
+                let mut point_scores = object.triangle.points().map(|p| p.distance(camera));
+                point_scores.sort_by(|a, b| a.total_cmp(b));
+
+                (i, point_scores[0])
             })
-            .map(|v| (v.triangle.project_2d(), v.outline_color, v.fill_color));
-        for (triangle, outline_color, fill_color) in drawn_triangles {
-            r.draw_triangle(triangle.clone(), fill_color);
-            r.draw_line(triangle.0, triangle.1, outline_color);
-            r.draw_line(triangle.0, triangle.2, outline_color);
+            .rev()
+            .collect::<Vec<_>>();
+
+        indices_with_scores.sort_by(|a, b| b.1.total_cmp(&a.1));
+
+        for (i, _) in indices_with_scores {
+            let object = &self.objects[i];
+
+            // check if behind camera
+            if !(object.triangle.0 .2 >= -1.0
+                && object.triangle.1 .2 >= -1.0
+                && object.triangle.2 .2 >= -1.0)
+            {
+                continue;
+            }
+
+            if object.triangle.normal().dot(object.triangle.0 - camera) >= 0.0 {
+                continue;
+            }
+
+            let triangle = object.triangle.project_2d();
+
+            r.draw_triangle(triangle.clone(), object.fill_color);
+            r.draw_line(triangle.0, triangle.1, object.outline_color);
+            r.draw_line(triangle.0, triangle.2, object.outline_color);
         }
     }
 

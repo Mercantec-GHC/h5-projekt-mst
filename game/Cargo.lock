@@ -39,7 +39,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d73fc820b0b6b9bd0557de7b799ec9da1ca4f35fcd1cb42f7ceb85e640d1477"
 
 [[package]]
-name = "unnamed-game-engine"
+name = "skate-slope"
 version = "0.1.0"
 dependencies = [
  "sdl3",

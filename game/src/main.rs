@@ -120,7 +120,7 @@ struct ShapeGroupShape {
 }
 
 struct ShapeGroup {
-    shapes: Vec<ShapeGroupShape>,
+    pub shapes: Vec<ShapeGroupShape>,
 }
 
 impl ShapeGroup {
@@ -188,6 +188,7 @@ impl Object {
     fn render(&self, scene: &mut Scene) {
         match self.kind {
             ObjectKind::SkateBoard { pos, rot, .. } => {
+                let camera_pos = V3(0.0, 0.0, -1.0);
                 let board = ShapeGroup::new(vec![
                     ShapeGroupShape {
                         shape: Shape::new_cube(V3(0.2, 0.01, 0.05)),
