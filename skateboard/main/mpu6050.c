@@ -1,4 +1,4 @@
-#include "new_mpu6050.h"
+#include "mpu6050.h"
 #include "driver/i2c_master.h"
 #include "driver/i2c_types.h"
 #include "esp_err.h"
@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char* TAG = "new_mpu6050";
+static const char* TAG = "mpu6050";
 
 #define CHECK(EXPR)                                                            \
     do {                                                                       \
@@ -108,7 +108,7 @@ static esp_err_t write_bits(
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_init(Mpu6050* dev)
+esp_err_t mpu6050_init(Mpu6050* dev)
 {
     *dev = (Mpu6050) { 0 };
 
@@ -149,16 +149,16 @@ esp_err_t new_mpu6050_init(Mpu6050* dev)
 
     vTaskDelay(pdMS_TO_TICKS(250));
 
-    CHECK(new_mpu6050_set_clock_source(dev, MPU6050_CLKSEL_PLL_GYRO_X_REF));
+    CHECK(mpu6050_set_clock_source(dev, MPU6050_CLKSEL_PLL_GYRO_X_REF));
 
-    CHECK(new_mpu6050_set_sleep_enabled(dev, false));
+    CHECK(mpu6050_set_sleep_enabled(dev, false));
 
-    CHECK(new_mpu6050_set_sample_rate_div(dev, 3));
+    CHECK(mpu6050_set_sample_rate_div(dev, 3));
 
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_get_rotation(Mpu6050* dev, float3* rotation)
+esp_err_t mpu6050_get_rotation(Mpu6050* dev, float3* rotation)
 {
     static const float resolution[] = {
         [MPU6050_GYRO_RANGE_250] = 1.0f / 131.0f,
@@ -183,7 +183,7 @@ esp_err_t new_mpu6050_get_rotation(Mpu6050* dev, float3* rotation)
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_get_acceleration(Mpu6050* dev, float3* accel)
+esp_err_t mpu6050_get_acceleration(Mpu6050* dev, float3* accel)
 {
     static const float resolution[] = {
         [MPU6050_ACCEL_RANGE_2] = 1.0f / 16384.0f,
@@ -208,7 +208,7 @@ esp_err_t new_mpu6050_get_acceleration(Mpu6050* dev, float3* accel)
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_read_temperature(Mpu6050* dev, float* temperature)
+esp_err_t mpu6050_read_temperature(Mpu6050* dev, float* temperature)
 {
 
     uint8_t buffer[2];
@@ -219,14 +219,14 @@ esp_err_t new_mpu6050_read_temperature(Mpu6050* dev, float* temperature)
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_deinit(Mpu6050* dev)
+esp_err_t mpu6050_deinit(Mpu6050* dev)
 {
     CHECK(i2c_master_bus_rm_device(dev->i2c_dev));
     CHECK(i2c_del_master_bus(dev->i2c_bus));
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_set_clock_source(Mpu6050* dev, Mpu6050_ClockSource source)
+esp_err_t mpu6050_set_clock_source(Mpu6050* dev, Mpu6050_ClockSource source)
 {
     return write_bits(dev,
         REG_PWR_MGMT_1,
@@ -235,7 +235,7 @@ esp_err_t new_mpu6050_set_clock_source(Mpu6050* dev, Mpu6050_ClockSource source)
         source);
 }
 
-esp_err_t new_mpu6050_set_gyro_range(Mpu6050* dev, Mpu6050_GyroRange range)
+esp_err_t mpu6050_set_gyro_range(Mpu6050* dev, Mpu6050_GyroRange range)
 {
     CHECK(write_bits(dev,
         REG_GYRO_CONFIG,
@@ -246,7 +246,7 @@ esp_err_t new_mpu6050_set_gyro_range(Mpu6050* dev, Mpu6050_GyroRange range)
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_set_accel_range(Mpu6050* dev, Mpu6050_AccelRange range)
+esp_err_t mpu6050_set_accel_range(Mpu6050* dev, Mpu6050_AccelRange range)
 {
     CHECK(write_bits(dev,
         REG_ACCEL_CONFIG,
@@ -257,17 +257,17 @@ esp_err_t new_mpu6050_set_accel_range(Mpu6050* dev, Mpu6050_AccelRange range)
     return ESP_OK;
 }
 
-esp_err_t new_mpu6050_set_sleep_enabled(Mpu6050* dev, bool enabled)
+esp_err_t mpu6050_set_sleep_enabled(Mpu6050* dev, bool enabled)
 {
     return write_bits(dev, REG_PWR_MGMT_1, BIT_PWR_MGMT_1_SLEEP, 1, enabled);
 }
 
-esp_err_t new_mpu6050_set_sample_rate_div(Mpu6050* dev, uint8_t div)
+esp_err_t mpu6050_set_sample_rate_div(Mpu6050* dev, uint8_t div)
 {
     return write_reg(dev, REG_SMPLRT_DIV, div);
 }
 
-esp_err_t new_mpu6050_set_dlpf(Mpu6050* dev, Mpu6050_DLPF selector)
+esp_err_t mpu6050_set_dlpf(Mpu6050* dev, Mpu6050_DLPF selector)
 {
     return write_bits(
         dev, REG_CONFIG, BIT_CONFIG_DLPF_CFG, MASK_CONFIG_DLPF_CFG, selector);
@@ -292,13 +292,13 @@ static void calibrate_measure_cb(void* arg)
         goto loop_break;
 
     float3 accel;
-    calib->status = new_mpu6050_get_acceleration(calib->dev, &accel);
+    calib->status = mpu6050_get_acceleration(calib->dev, &accel);
 
     if (calib->status != ESP_OK)
         goto loop_break;
 
     float3 rotation;
-    calib->status = new_mpu6050_get_rotation(calib->dev, &rotation);
+    calib->status = mpu6050_get_rotation(calib->dev, &rotation);
 
     if (calib->status != ESP_OK)
         goto loop_break;
@@ -318,7 +318,7 @@ loop_break:
     xEventGroupSetBits(calib->event_group, 1);
 }
 
-esp_err_t new_mpu6050_calibrate(Mpu6050* dev, const float3* initial_rotation)
+esp_err_t mpu6050_calibrate(Mpu6050* dev, const float3* initial_rotation)
 {
 
     Calibrator calib = {

@@ -60,29 +60,28 @@ typedef struct {
     float3 accel_bias;
 } Mpu6050;
 
-esp_err_t new_mpu6050_init(Mpu6050* dev);
-esp_err_t new_mpu6050_deinit(Mpu6050* dev);
+esp_err_t mpu6050_init(Mpu6050* dev);
+esp_err_t mpu6050_deinit(Mpu6050* dev);
 
-esp_err_t new_mpu6050_get_rotation(Mpu6050* dev, float3* rotation);
-esp_err_t new_mpu6050_get_acceleration(Mpu6050* dev, float3* accel);
-esp_err_t new_mpu6050_read_temperature(Mpu6050* dev, float* temperature);
+esp_err_t mpu6050_get_rotation(Mpu6050* dev, float3* rotation);
+esp_err_t mpu6050_get_acceleration(Mpu6050* dev, float3* accel);
+esp_err_t mpu6050_read_temperature(Mpu6050* dev, float* temperature);
 
-esp_err_t new_mpu6050_set_clock_source(
-    Mpu6050* dev, Mpu6050_ClockSource source);
-esp_err_t new_mpu6050_set_gyro_range(Mpu6050* dev, Mpu6050_GyroRange range);
-esp_err_t new_mpu6050_set_accel_range(Mpu6050* dev, Mpu6050_AccelRange range);
-esp_err_t new_mpu6050_set_sleep_enabled(Mpu6050* dev, bool enabled);
+esp_err_t mpu6050_set_clock_source(Mpu6050* dev, Mpu6050_ClockSource source);
+esp_err_t mpu6050_set_gyro_range(Mpu6050* dev, Mpu6050_GyroRange range);
+esp_err_t mpu6050_set_accel_range(Mpu6050* dev, Mpu6050_AccelRange range);
+esp_err_t mpu6050_set_sleep_enabled(Mpu6050* dev, bool enabled);
 
-#define NEW_MPU6050_SAMPLE_RATE_TO_DIV_1KHZ(SAMPLE_RATE)                       \
+#define MPU6050_SAMPLE_RATE_TO_DIV_1KHZ(SAMPLE_RATE)                           \
     ((uint8_t)(1000.0f / (float)(SAMPLE_RATE) - 1.0f))
-#define NEW_MPU6050_SAMPLE_RATE_TO_DIV_8KHZ(SAMPLE_RATE)                       \
+#define MPU6050_SAMPLE_RATE_TO_DIV_8KHZ(SAMPLE_RATE)                           \
     ((uint8_t)(8000.0f / (float)(SAMPLE_RATE) - 1.0f))
 
 // Sample rate = Gyro output rate / (1 + Sample rate divier)
 // Optionally use
-// - `NEW_MPU6050_SAMPLE_RATE_TO_DIV_1KHZ()`, if DLPF is enabled
-// - `NEW_MPU6050_SAMPLE_RATE_TO_DIV_8KHZ()`, if DLPF is disabled
-esp_err_t new_mpu6050_set_sample_rate_div(Mpu6050* dev, uint8_t div);
+// - `MPU6050_SAMPLE_RATE_TO_DIV_1KHZ()`, if DLPF is enabled
+// - `MPU6050_SAMPLE_RATE_TO_DIV_8KHZ()`, if DLPF is disabled
+esp_err_t mpu6050_set_sample_rate_div(Mpu6050* dev, uint8_t div);
 
 typedef enum : uint8_t {
     // Accelerometer: bandwidth = 260Hz, delay = 0.0ms
@@ -117,6 +116,6 @@ typedef enum : uint8_t {
 
 // Digital low pass filter (DLPF)
 // Note: Sampling rate is dependent on whether DLPF is enabled.
-esp_err_t new_mpu6050_set_dlpf(Mpu6050* dev, Mpu6050_DLPF selector);
+esp_err_t mpu6050_set_dlpf(Mpu6050* dev, Mpu6050_DLPF selector);
 
-esp_err_t new_mpu6050_calibrate(Mpu6050* dev, const float3* initial_rotation);
+esp_err_t mpu6050_calibrate(Mpu6050* dev, const float3* initial_rotation);

@@ -5,11 +5,10 @@
 #include "esp_netif.h"
 #include "esp_timer.h"
 #include "freertos/idf_additions.h"
+#include "mpu6050.h"
 #include "nvs_flash.h"
 #include <stdbool.h>
 #include <stdio.h>
-
-#include "new_mpu6050.h"
 
 const char* TAG = "skateboard";
 
@@ -69,13 +68,13 @@ static void mpu_timer_cb(void* arg)
     (void)app;
 
     float3 accel = { 0 };
-    ESP_ERROR_CHECK(new_mpu6050_get_acceleration(&app->mpu, &accel));
+    ESP_ERROR_CHECK(mpu6050_get_acceleration(&app->mpu, &accel));
 
     float3 rotation = { 0 };
-    ESP_ERROR_CHECK(new_mpu6050_get_rotation(&app->mpu, &rotation));
+    ESP_ERROR_CHECK(mpu6050_get_rotation(&app->mpu, &rotation));
 
     float temp = 0;
-    ESP_ERROR_CHECK(new_mpu6050_read_temperature(&app->mpu, &temp));
+    ESP_ERROR_CHECK(mpu6050_read_temperature(&app->mpu, &temp));
 
     app->accel_acc.x = accel.x;
     app->accel_acc.y = accel.y;
@@ -109,11 +108,11 @@ void app_main(void)
     // app_wifi_init(&app.wifi);
     // app_mqtt_init(&app.mqtt);
 
-    ESP_ERROR_CHECK(new_mpu6050_init(&app.mpu));
+    ESP_ERROR_CHECK(mpu6050_init(&app.mpu));
 
     ESP_LOGI(TAG, "Calibrating MPU6050");
     ESP_ERROR_CHECK(
-        new_mpu6050_calibrate(&app.mpu, &(float3) { 0.0f, 0.0f, -1.0f }));
+        mpu6050_calibrate(&app.mpu, &(float3) { 0.0f, 0.0f, -1.0f }));
     ESP_LOGI(TAG, "MPU6050 calibrated");
 
     ESP_ERROR_CHECK(esp_timer_start_periodic(mpu_timer, 40000));
