@@ -98,6 +98,7 @@ enum ObjectKind {
         pos: V3,
         vel: V3,
         rot: V3,
+        nyoom_factor: f64,
     },
     Obstacle {
         pos: V3,
@@ -158,11 +159,17 @@ impl ShapeGroup {
 impl Object {
     fn update(&mut self, delta_time: Duration) {
         match &mut self.kind {
-            ObjectKind::SkateBoard { pos, vel, rot } => {
+            ObjectKind::SkateBoard {
+                pos,
+                vel,
+                nyoom_factor,
+                rot,
+            } => {
                 *pos += *vel * delta_time.as_secs_f64();
+                *nyoom_factor += 16.0 * delta_time.as_secs_f64();
 
                 // rot.0 += delta_time.as_secs_f64() * PI * 1.0;
-                // rot.1 += delta_time.as_secs_f64() * PI * 1.0;
+                rot.1 += delta_time.as_secs_f64() * PI * 0.2;
                 // rot.2 += delta_time.as_secs_f64() * PI * 2.0;
             }
             ObjectKind::Obstacle { pos, vel } => {
@@ -187,24 +194,42 @@ impl Object {
 
     fn render(&self, scene: &mut Scene) {
         match self.kind {
-            ObjectKind::SkateBoard { pos, rot, .. } => {
-                let camera_pos = V3(0.0, 0.0, -1.0);
-                let board = ShapeGroup::new(vec![
-                    ShapeGroupShape {
-                        shape: Shape::new_cube(V3(0.2, 0.01, 0.05)),
-                        offset: V3(0.0, 0.0, 0.0),
-                    },
-                    ShapeGroupShape {
-                        shape: Shape::new_cube(V3(0.02, 0.02, 0.05)),
-                        offset: V3(0.04, -0.02, 0.0),
-                    },
-                    ShapeGroupShape {
-                        shape: Shape::new_cube(V3(0.02, 0.02, 0.05)),
-                        offset: V3(0.14, -0.02, 0.0),
-                    },
-                ])
-                .translate(V3(-0.1, -0.005, -0.0025))
-                .rotate(rot);
+            ObjectKind::SkateBoard {
+                pos,
+                rot,
+                nyoom_factor,
+                ..
+            } => {
+                let trucks = {
+                    vec![
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(V3(0.005, 0.01, 0.005)),
+                            offset: V3(0.04 - 0.0025, -0.005, 0.025 - 0.0025),
+                        },
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(V3(0.005, 0.01, 0.005)),
+                            offset: V3(0.14 - 0.0025, -0.005, 0.025 - 0.0025),
+                        },
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(V3(0.0025, 0.0025, 0.05)),
+                            offset: V3(0.04 - 0.0025, -0.005 - 0.01, 0.0),
+                        },
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(V3(0.0025, 0.0025, 0.05)),
+                            offset: V3(0.14 - 0.0025, -0.005 - 0.01, 0.0),
+                        },
+                    ]
+                };
+                let wheels = {};
+                let mut board = vec![ShapeGroupShape {
+                    shape: Shape::new_cube(V3(0.175, 0.005, 0.05)),
+                    offset: V3(0.0, 0.0, 0.0),
+                }];
+                board.extend(trucks);
+                board.extend(wheels);
+                let board = ShapeGroup::new(board)
+                    .translate(V3(-0.1, 0.005, -0.0025))
+                    .rotate(rot);
                 board.draw(pos, scene, Color::Green, Color::Black);
             }
             ObjectKind::Obstacle { pos, .. } => {
@@ -257,7 +282,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     objects.push(ObjectKind::SkateBoard {
         pos: V3(0.0, -0.1, -0.7),
         vel: V3(0.0, 0.0, 0.0),
-        rot: V3(0.0, PI * 0.5, 0.0),
+        rot: V3(0.0, PI * 0.33, 0.0),
+        nyoom_factor: 0.0,
     });
     objects.push(ObjectKind::Ground {
         original_pos: V3(0.0, -0.25, -0.6),
