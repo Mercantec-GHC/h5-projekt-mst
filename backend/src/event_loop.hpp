@@ -2,8 +2,10 @@
 #include "errno_shim.hpp"
 #include "result.hpp"
 #include "server.hpp"
+#include <algorithm>
 #include <memory>
 #include <sys/epoll.h>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -11,9 +13,23 @@ namespace mst {
 class Server;
 class Client;
 namespace event {
-    struct Event {
+    enum class EventKind {
+        Server,
+        Client,
+    };
+    class Event {
+    public:
+        Event(std::variant<std::unique_ptr<mst::Server>,
+            std::unique_ptr<mst::Client>> data)
+            : data(std::move(data))
+            , kind(data.index() == 0 ? EventKind::Server : EventKind::Client)
+        {
+        }
+        auto fd() -> int;
+
         std::variant<std::unique_ptr<mst::Server>, std::unique_ptr<mst::Client>>
             data;
+        EventKind kind;
     };
 
     template <typename Data>
@@ -41,6 +57,7 @@ namespace event {
             }
             return { };
         }
+        auto deregister_event(int fd) -> Result<void>;
         static auto create() -> Result<Manager>;
 
     private:

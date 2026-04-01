@@ -5,7 +5,7 @@
 
 namespace mst {
 
-auto Client::wake() -> Result<void>
+auto Client::wake() -> Result<Client::lllll>
 {
     uint8_t buffer[128] = { };
     auto x = this->connection.read(buffer, 128);
@@ -13,11 +13,14 @@ auto Client::wake() -> Result<void>
         return std::unexpected(x.error());
     }
     auto bytes_read = x.value();
+    if (bytes_read == 0) {
+        return { Client::lllll::Disconnect };
+    }
     for (size_t i = 0; i < bytes_read; ++i) {
         std::println("{:c}", buffer[i]);
     }
 
-    return { };
+    return { Client::lllll::Ok };
 }
 
 auto Server::bind(
