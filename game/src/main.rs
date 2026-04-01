@@ -56,18 +56,44 @@ impl Game {
 impl<R: Renderer> engine::Game<R> for Game {
     fn update(&mut self, delta_time: Duration) {
         for object in &mut self.objects {
+            if self.keys_pressed.contains(&Key::Left) == self.keys_pressed.contains(&Key::Right) {
+                match &mut object.kind {
+                    ObjectKind::SkateBoard {
+                        pivot_deg: pivot_factor,
+                        ..
+                    } => {
+                        let decay_rate = 1.0 - (2.0 * delta_time.as_secs_f64());
+                        *pivot_factor *= decay_rate;
+                    }
+                    _ => {}
+                }
+            }
             if self.keys_pressed.contains(&Key::Left) {
                 match &mut object.kind {
-                    ObjectKind::SkateBoard { vel, .. } => vel.0 -= 0.01,
+                    ObjectKind::SkateBoard { pivot_deg, .. } => {
+                        *pivot_deg -= 18.0 * delta_time.as_secs_f64();
+                        if *pivot_deg < -12.5 {
+                            *pivot_deg = -12.5;
+                        }
+                    }
                     _ => {}
                 }
             }
             if self.keys_pressed.contains(&Key::Right) {
                 match &mut object.kind {
-                    ObjectKind::SkateBoard { vel, .. } => vel.0 += 0.01,
+                    ObjectKind::SkateBoard {
+                        pivot_deg: pivot_factor,
+                        ..
+                    } => {
+                        *pivot_factor += 18.0 * delta_time.as_secs_f64();
+                        if *pivot_factor > 12.5 {
+                            *pivot_factor = 12.5;
+                        }
+                    }
                     _ => {}
                 }
             }
+
             object.update(delta_time);
         }
     }
@@ -99,6 +125,7 @@ enum ObjectKind {
         vel: V3,
         rot: V3,
         nyoom_factor: f64,
+        pivot_deg: f64,
     },
     Obstacle {
         pos: V3,
@@ -163,13 +190,15 @@ impl Object {
                 pos,
                 vel,
                 nyoom_factor,
-                rot,
+                pivot_deg: pivot_factor,
+                ..
             } => {
+                vel.0 = *pivot_factor * delta_time.as_secs_f64();
                 *pos += *vel * delta_time.as_secs_f64();
                 *nyoom_factor += 16.0 * delta_time.as_secs_f64();
 
                 // rot.0 += delta_time.as_secs_f64() * PI * 1.0;
-                rot.1 += delta_time.as_secs_f64() * PI * 0.2;
+                // rot.1 += delta_time.as_secs_f64() * PI * 0.2;
                 // rot.2 += delta_time.as_secs_f64() * PI * 2.0;
             }
             ObjectKind::Obstacle { pos, vel } => {
@@ -198,38 +227,116 @@ impl Object {
                 pos,
                 rot,
                 nyoom_factor,
+                pivot_deg,
                 ..
             } => {
+                let board_size = V3(0.175, 0.005, 0.05);
                 let trucks = {
-                    vec![
+                    let anchor_size = V3(0.005, 0.01, 0.005);
+                    let anchor_y = -anchor_size.1 - board_size.1 * 0.5;
+                    let pivot = vec![
                         ShapeGroupShape {
-                            shape: Shape::new_cube(V3(0.005, 0.01, 0.005)),
-                            offset: V3(0.04 - 0.0025, -0.005, 0.025 - 0.0025),
+                            shape: Shape::new_cube(anchor_size),
+                            offset: V3(
+                                anchor_size.0 * -0.5 + board_size.0 * 0.4,
+                                anchor_y,
+                                anchor_size.2 * -0.5,
+                            ),
                         },
                         ShapeGroupShape {
-                            shape: Shape::new_cube(V3(0.005, 0.01, 0.005)),
-                            offset: V3(0.14 - 0.0025, -0.005, 0.025 - 0.0025),
+                            shape: Shape::new_cube(anchor_size),
+                            offset: V3(
+                                anchor_size.0 * -0.5 - board_size.0 * 0.4,
+                                anchor_y,
+                                anchor_size.2 * -0.5,
+                            ),
+                        },
+                    ];
+                    let wheel_rail_size = V3(anchor_size.0, anchor_size.0, board_size.2 * 0.8);
+                    let wheel_rail_y = anchor_y - wheel_rail_size.1;
+                    let wheel_rail = vec![
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(wheel_rail_size),
+                            offset: V3(
+                                wheel_rail_size.0 * -0.5 + board_size.0 * 0.4,
+                                wheel_rail_y,
+                                wheel_rail_size.2 * -0.5,
+                            ),
                         },
                         ShapeGroupShape {
-                            shape: Shape::new_cube(V3(0.0025, 0.0025, 0.05)),
-                            offset: V3(0.04 - 0.0025, -0.005 - 0.01, 0.0),
+                            shape: Shape::new_cube(wheel_rail_size),
+                            offset: V3(
+                                wheel_rail_size.0 * -0.5 - board_size.0 * 0.4,
+                                wheel_rail_y,
+                                wheel_rail_size.2 * -0.5,
+                            ),
+                        },
+                    ];
+                    let wheel_size = V3(0.01, 0.01, 0.0025);
+                    let wheel_y = wheel_rail_y - wheel_size.1 * 0.25;
+                    let wheel_rot = V3(0.0, 0.0, nyoom_factor);
+                    let wheel_rot_trans = V3(0.5, 0.5, 0.0);
+                    let wheel = vec![
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(wheel_size)
+                                .translate(wheel_size * wheel_rot_trans * -1.0)
+                                .rotate(wheel_rot)
+                                .translate(wheel_size * wheel_rot_trans),
+                            offset: V3(
+                                wheel_size.0 * -0.5 + board_size.0 * 0.4,
+                                wheel_y,
+                                wheel_rail_size.2 * -0.5 - wheel_size.2,
+                            ),
                         },
                         ShapeGroupShape {
-                            shape: Shape::new_cube(V3(0.0025, 0.0025, 0.05)),
-                            offset: V3(0.14 - 0.0025, -0.005 - 0.01, 0.0),
+                            shape: Shape::new_cube(wheel_size)
+                                .translate(wheel_size * wheel_rot_trans * -1.0)
+                                .rotate(wheel_rot)
+                                .translate(wheel_size * wheel_rot_trans),
+
+                            offset: V3(
+                                wheel_size.0 * -0.5 - board_size.0 * 0.4,
+                                wheel_y,
+                                wheel_rail_size.2 * -0.5 - wheel_size.2,
+                            ),
                         },
-                    ]
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(wheel_size)
+                                .translate(wheel_size * wheel_rot_trans * -1.0)
+                                .rotate(wheel_rot)
+                                .translate(wheel_size * wheel_rot_trans),
+
+                            offset: V3(
+                                wheel_size.0 * -0.5 + board_size.0 * 0.4,
+                                wheel_y,
+                                wheel_rail_size.2 * 0.5,
+                            ),
+                        },
+                        ShapeGroupShape {
+                            shape: Shape::new_cube(wheel_size)
+                                .translate(wheel_size * wheel_rot_trans * -1.0)
+                                .rotate(wheel_rot)
+                                .translate(wheel_size * wheel_rot_trans),
+
+                            offset: V3(
+                                wheel_size.0 * -0.5 - board_size.0 * 0.4,
+                                wheel_y,
+                                wheel_rail_size.2 * 0.5,
+                            ),
+                        },
+                    ];
+                    vec![pivot, wheel_rail, wheel].into_iter().flatten()
                 };
-                let wheels = {};
+                let board_pivot_trans = V3(0.0, 0.5, 0.5);
                 let mut board = vec![ShapeGroupShape {
-                    shape: Shape::new_cube(V3(0.175, 0.005, 0.05)),
-                    offset: V3(0.0, 0.0, 0.0),
+                    shape: Shape::new_cube(board_size)
+                        .translate(board_size * board_pivot_trans * -1.0)
+                        .rotate(V3(pivot_deg * (PI / 180.0), 0.0, 0.0))
+                        .translate(board_size * board_pivot_trans),
+                    offset: board_size * -0.5,
                 }];
                 board.extend(trucks);
-                board.extend(wheels);
-                let board = ShapeGroup::new(board)
-                    .translate(V3(-0.1, 0.005, -0.0025))
-                    .rotate(rot);
+                let board = ShapeGroup::new(board).rotate(rot);
                 board.draw(pos, scene, Color::Green, Color::Black);
             }
             ObjectKind::Obstacle { pos, .. } => {
@@ -282,8 +389,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     objects.push(ObjectKind::SkateBoard {
         pos: V3(0.0, -0.1, -0.7),
         vel: V3(0.0, 0.0, 0.0),
-        rot: V3(0.0, PI * 0.33, 0.0),
+        rot: V3(0.0, PI * 0.5, 0.0),
         nyoom_factor: 0.0,
+        pivot_deg: 0.0,
     });
     objects.push(ObjectKind::Ground {
         original_pos: V3(0.0, -0.25, -0.6),
