@@ -56,13 +56,13 @@ impl<R: Renderer> engine::Game<R> for Game {
         for object in &mut self.objects {
             if self.keys_pressed.contains(&Key::Left) == self.keys_pressed.contains(&Key::Right) {
                 if let ObjectKind::SkateBoard { pivot_deg, .. } = &mut object.kind {
-                    let decay_rate = 1.0 - (2.0 * delta_time.as_secs_f64());
+                    let decay_rate = 1.0 - (4.0 * delta_time.as_secs_f64());
                     *pivot_deg *= decay_rate;
                 }
             }
             if self.keys_pressed.contains(&Key::Left) {
                 if let ObjectKind::SkateBoard { pivot_deg, .. } = &mut object.kind {
-                    *pivot_deg -= 18.0 * delta_time.as_secs_f64();
+                    *pivot_deg -= 36.0 * delta_time.as_secs_f64();
                     if *pivot_deg < -12.5 {
                         *pivot_deg = -12.5;
                     }
@@ -70,7 +70,7 @@ impl<R: Renderer> engine::Game<R> for Game {
             }
             if self.keys_pressed.contains(&Key::Right) {
                 if let ObjectKind::SkateBoard { pivot_deg, .. } = &mut object.kind {
-                    *pivot_deg += 18.0 * delta_time.as_secs_f64();
+                    *pivot_deg += 36.0 * delta_time.as_secs_f64();
                     if *pivot_deg > 12.5 {
                         *pivot_deg = 12.5;
                     }

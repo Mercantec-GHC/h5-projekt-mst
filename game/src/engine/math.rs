@@ -7,9 +7,13 @@ pub struct V2(pub f64, pub f64);
 pub struct V3(pub f64, pub f64, pub f64);
 
 impl V3 {
-    pub fn project_2d(&self) -> V2 {
+    pub fn filled(v: f64) -> Self {
+        Self(v, v, v)
+    }
+
+    pub fn project_2d(&self, camera_pos: V3) -> V2 {
         // V2(self.0 / self.2, self.1 / self.2)
-        let c = V3(0.0, 0.0, -1.0);
+        let c = camera_pos;
         let d = *self - c;
         let e = V3(0.0, 0.0, 0.0) - c;
         V2(e.2 / d.2 * d.0 + e.0, e.2 / d.2 * d.1 + e.1)
@@ -126,11 +130,11 @@ impl Triangle3 {
         Self(self.0 + offset, self.1 + offset, self.2 + offset)
     }
 
-    pub fn project_2d(&self) -> Triangle2 {
+    pub fn project_2d(&self, camera_pos: V3) -> Triangle2 {
         Triangle2(
-            self.0.project_2d(),
-            self.1.project_2d(),
-            self.2.project_2d(),
+            self.0.project_2d(camera_pos),
+            self.1.project_2d(camera_pos),
+            self.2.project_2d(camera_pos),
         )
     }
 

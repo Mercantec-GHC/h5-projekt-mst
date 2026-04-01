@@ -17,13 +17,13 @@ impl Scene {
         }
     }
 
-    pub fn render<R: Renderer>(&mut self, r: &mut R, camera: V3) {
+    pub fn render<R: Renderer>(&mut self, r: &mut R, camera_pos: V3) {
         let mut indices_with_scores = self
             .objects
             .iter()
             .enumerate()
             .map(|(i, object)| {
-                let mut point_scores = object.triangle.points().map(|p| p.distance(camera));
+                let mut point_scores = object.triangle.points().map(|p| p.distance(camera_pos));
                 point_scores.sort_by(|a, b| a.total_cmp(b));
 
                 (i, point_scores[0])
@@ -44,11 +44,11 @@ impl Scene {
                 continue;
             }
 
-            if object.triangle.normal().dot(object.triangle.0 - camera) >= 0.0 {
+            if object.triangle.normal().dot(object.triangle.0 - camera_pos) >= 0.0 {
                 continue;
             }
 
-            let triangle = object.triangle.project_2d();
+            let triangle = object.triangle.project_2d(camera_pos);
 
             r.draw_triangle(triangle.clone(), object.fill_color);
             r.draw_line(triangle.0, triangle.1, object.outline_color);

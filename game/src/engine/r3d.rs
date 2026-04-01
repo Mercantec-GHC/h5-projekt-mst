@@ -3,24 +3,30 @@ use crate::engine::{game::Renderer, Color, Shape, Triangle2, Triangle3, V2, V3};
 pub struct R3d<'r, R: Renderer> {
     r: &'r mut R,
     triangle_buffer: Vec<Triangle2>,
+    camera_pos: V3,
 }
 
-static CAMERA_POS: V3 = V3(0.0, 0.0, -1.0);
-
 impl<'r, R: Renderer> R3d<'r, R> {
-    pub fn new(r: &'r mut R) -> Self {
+    pub fn new(r: &'r mut R, camera_pos: V3) -> Self {
         Self {
             r,
             triangle_buffer: Vec::new(),
+            camera_pos,
         }
     }
 
     pub fn draw_line(&mut self, from: V3, to: V3, color: Color) {
-        self.r.draw_line(from.project_2d(), to.project_2d(), color);
+        self.r.draw_line(
+            from.project_2d(self.camera_pos),
+            to.project_2d(self.camera_pos),
+            color,
+        );
     }
 
     pub fn draw_triangle(&mut self, triangle: Triangle3, color: Color) {
-        let triangle = triangle.translate(CAMERA_POS).project_2d();
+        let triangle = triangle
+            .translate(self.camera_pos)
+            .project_2d(self.camera_pos);
 
         self.r.draw_line(triangle.0, triangle.1, color);
         self.r.draw_line(triangle.1, triangle.2, color);
@@ -29,13 +35,16 @@ impl<'r, R: Renderer> R3d<'r, R> {
 
     pub fn draw_shape(&mut self, pos: V3, shape: &Shape, outline_color: Color, fill_color: Color) {
         self.triangle_buffer.clear();
-        self.triangle_buffer
-            .extend(shape.faces().map(|tri| tri.translate(pos).project_2d()));
+        self.triangle_buffer.extend(
+            shape
+                .faces()
+                .map(|tri| tri.translate(pos).project_2d(self.camera_pos)),
+        );
 
         self.r.draw_triangles(&self.triangle_buffer, fill_color);
 
         for face in shape.faces() {
-            if face.normal().dot(face.0 - CAMERA_POS + pos) >= 0.0 {
+            if face.normal().dot(face.0 - self.camera_pos + pos) >= 0.0 {
                 continue;
             }
             // let pxyz = face.middle() + face.normal();
@@ -58,13 +67,13 @@ impl<'r, R: Renderer> R3d<'r, R> {
 
             // self.draw_triangle(face.translate(pos - CAMERA_POS), outline_color);
             self.r.draw_line(
-                (face.0 + pos).project_2d(),
-                (face.1 + pos).project_2d(),
+                (face.0 + pos).project_2d(self.camera_pos),
+                (face.1 + pos).project_2d(self.camera_pos),
                 outline_color,
             );
             self.r.draw_line(
-                (face.2 + pos).project_2d(),
-                (face.0 + pos).project_2d(),
+                (face.2 + pos).project_2d(self.camera_pos),
+                (face.0 + pos).project_2d(self.camera_pos),
                 outline_color,
             );
         }

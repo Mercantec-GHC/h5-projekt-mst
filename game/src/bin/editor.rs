@@ -1,4 +1,3 @@
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    skate_slope::game::game_main()
+    skate_slope::editor::editor_main()
 }
