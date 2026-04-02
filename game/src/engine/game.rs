@@ -32,6 +32,14 @@ pub enum Color {
 pub enum Key {
     Left,
     Right,
+    Up,
+    Down,
+    W,
+    A,
+    S,
+    D,
+    LShift,
+    LCtrl,
 }
 
 pub enum Event {

@@ -17,7 +17,7 @@ impl Scene {
         }
     }
 
-    pub fn render<R: Renderer>(&mut self, r: &mut R, camera_pos: V3) {
+    pub fn render<R: Renderer>(&mut self, r: &mut R, camera_pos: V3, camera_rot: V3) {
         let mut indices_with_scores = self
             .objects
             .iter()
@@ -35,24 +35,28 @@ impl Scene {
 
         for (i, _) in indices_with_scores {
             let object = &self.objects[i];
+            let tri3 = object
+                .triangle
+                .translate(camera_pos * -1.0)
+                .rotate(camera_rot);
 
             // check if behind camera
-            if !(object.triangle.0 .2 >= -1.0
-                && object.triangle.1 .2 >= -1.0
-                && object.triangle.2 .2 >= -1.0)
-            {
+            // TODO: doesn't take camera_pos or camera_rot into accout
+            if !(tri3.0 .2 >= 0.0 && tri3.1 .2 >= 0.0 && tri3.2 .2 >= 0.0) {
                 continue;
             }
 
-            if object.triangle.normal().dot(object.triangle.0 - camera_pos) >= 0.0 {
+            if tri3.normal().dot(tri3.0 - camera_pos) >= 0.0 {
                 continue;
             }
 
-            let triangle = object.triangle.project_2d(camera_pos);
+            let tri2 = tri3
+                .translate(V3(0.0, 0.0, -1.0))
+                .project_2d(V3(0.0, 0.0, -1.0));
 
-            r.draw_triangle(triangle.clone(), object.fill_color);
-            r.draw_line(triangle.0, triangle.1, object.outline_color);
-            r.draw_line(triangle.0, triangle.2, object.outline_color);
+            r.draw_triangle(tri2.clone(), object.fill_color);
+            r.draw_line(tri2.0, tri2.1, object.outline_color);
+            r.draw_line(tri2.0, tri2.2, object.outline_color);
         }
     }
 

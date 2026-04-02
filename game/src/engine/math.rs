@@ -122,12 +122,20 @@ pub struct Triangle2(pub V2, pub V2, pub V2);
 pub struct Triangle3(pub V3, pub V3, pub V3);
 
 impl Triangle3 {
+    pub fn map<F: Fn(V3) -> V3>(&self, f: F) -> Self {
+        Self(f(self.0), f(self.1), f(self.2))
+    }
+
     pub fn normal(&self) -> V3 {
         (self.1 - self.0).cross(self.2 - self.1)
     }
 
     pub fn translate(&self, offset: V3) -> Self {
         Self(self.0 + offset, self.1 + offset, self.2 + offset)
+    }
+
+    pub fn rotate(&self, rot: V3) -> Self {
+        self.map(|v| v.rotate(rot))
     }
 
     pub fn project_2d(&self, camera_pos: V3) -> Triangle2 {

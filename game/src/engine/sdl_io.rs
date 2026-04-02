@@ -66,35 +66,16 @@ impl SdlIo {
                     } => break 'running,
                     Event::KeyDown {
                         keycode: Some(key), ..
-                    } => match key {
-                        Keycode::Left => {
-                            game.event(game::Event::KeyDown {
-                                key: game::Key::Left,
-                            });
-                        }
-                        Keycode::Right => {
-                            game.event(game::Event::KeyDown {
-                                key: game::Key::Right,
-                            });
-                        }
-                        _ => {}
+                    } => match TryInto::<game::Key>::try_into(key).ok() {
+                        Some(key) => game.event(game::Event::KeyDown { key }),
+                        None => {}
                     },
                     Event::KeyUp {
                         keycode: Some(key), ..
-                    } => match key {
-                        Keycode::Left => {
-                            game.event(game::Event::KeyUp {
-                                key: game::Key::Left,
-                            });
-                        }
-                        Keycode::Right => {
-                            game.event(game::Event::KeyUp {
-                                key: game::Key::Right,
-                            });
-                        }
-                        _ => {}
+                    } => match TryInto::<game::Key>::try_into(key).ok() {
+                        Some(key) => game.event(game::Event::KeyUp { key }),
+                        None => {}
                     },
-
                     _ => {}
                 }
             }
@@ -228,5 +209,25 @@ impl From<Color> for SdlColor {
 impl From<Color> for FColor {
     fn from(value: Color) -> Self {
         FColor::from(<Color as Into<SdlColor>>::into(value))
+    }
+}
+
+impl TryFrom<Keycode> for game::Key {
+    type Error = ();
+
+    fn try_from(value: Keycode) -> Result<Self, Self::Error> {
+        Ok(match value {
+            Keycode::Left => game::Key::Left,
+            Keycode::Right => game::Key::Right,
+            Keycode::Up => game::Key::Up,
+            Keycode::Down => game::Key::Down,
+            Keycode::W => game::Key::W,
+            Keycode::A => game::Key::A,
+            Keycode::S => game::Key::S,
+            Keycode::D => game::Key::D,
+            Keycode::LShift => game::Key::LShift,
+            Keycode::LCtrl => game::Key::LCtrl,
+            _ => return Err(()),
+        })
     }
 }

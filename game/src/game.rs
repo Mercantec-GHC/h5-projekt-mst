@@ -86,7 +86,7 @@ impl<R: Renderer> engine::Game<R> for Game {
         for object in &self.objects {
             object.render(&mut scene);
         }
-        scene.render(r, V3(0.0, 0.0, -1.0));
+        scene.render(r, V3(0.0, 0.0, -1.0), V3(0.0, 0.0, 0.0));
     }
 
     fn event(&mut self, event: engine::Event) {
