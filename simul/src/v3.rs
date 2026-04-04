@@ -26,25 +26,31 @@ impl V3 {
         let acc = initial;
         let acc = func(acc, self.0);
         let acc = func(acc, self.1);
-        let acc = func(acc, self.0);
-        acc
+        func(acc, self.0)
     }
 
-    pub fn cross(&self, rhs: Self) -> Self {
+    pub fn cross(&self, rhs: V3) -> Self {
         let V3(ax, ay, az) = self;
         let V3(bx, by, bz) = rhs;
         V3(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx)
     }
 
-    pub fn rotate(&self, rot: Self) -> Self {
+    pub fn rotate_by_v3(&self, rot: V3) -> Self {
         M3x3::new_rotate_z(rot.2)
             * (M3x3::new_rotate_y(rot.1) * (M3x3::new_rotate_x(rot.0) * *self))
     }
 
-    pub fn project_2d(&self, camera_pos: V3) -> V2 {
+    pub fn rotate_by_m3x3(&self, rot: M3x3) -> Self {
+        rot * *self
+    }
+
+    /// See https://en.wikipedia.org/wiki/3D_projection#Mathematical_formula
+    /// for details on the implementation.
+    pub fn project_2d(&self, camera_pos: V3, camera_rot: M3x3, screen_rel_pos: V3) -> V2 {
+        let a = *self;
         let c = camera_pos;
-        let d = *self - c;
-        let e = V3(0.0, 0.0, 0.0) - c;
+        let d = (a - c).rotate_by_m3x3(camera_rot);
+        let e = screen_rel_pos - c;
         V2(e.2 / d.2 * d.0 + e.0, e.2 / d.2 * d.1 + e.1)
     }
 
@@ -52,8 +58,12 @@ impl V3 {
         self.zip(rhs, |a, b| a * b).reduce(0.0, |acc, v| acc + v)
     }
 
-    pub fn translate(&self, trans: V3) -> V3 {
-        *self + trans
+    pub fn translate(&self, offset: Self) -> Self {
+        *self + offset
+    }
+
+    pub fn scale(&self, scale: Self) -> Self {
+        self.zip(scale, |a, b| a * b)
     }
 
     pub fn len(&self) -> f64 {

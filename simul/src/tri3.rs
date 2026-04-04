@@ -1,4 +1,4 @@
-use crate::{tri2::Tri2, v3::V3};
+use crate::{m3x3::M3x3, tri2::Tri2, v3::V3};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Tri3(pub V3, pub V3, pub V3);
@@ -20,20 +20,27 @@ impl Tri3 {
         )
     }
 
-    pub fn rotate(&self, rot: V3) -> Self {
-        self.map(|v| v.rotate(rot))
+    pub fn rotate_by_v3(&self, rot: V3) -> Self {
+        self.map(|v| v.rotate_by_v3(rot))
+    }
+    pub fn rotate_by_m3x3(&self, rot: M3x3) -> Self {
+        self.map(|v| v.rotate_by_m3x3(rot))
     }
 
-    pub fn project_2d(&self, camera_pos: V3) -> Tri2 {
+    pub fn project_2d(&self, camera_pos: V3, camera_rot: M3x3, screen_rel_pos: V3) -> Tri2 {
         Tri2(
-            self.0.project_2d(camera_pos),
-            self.1.project_2d(camera_pos),
-            self.2.project_2d(camera_pos),
+            self.0.project_2d(camera_pos, camera_rot, screen_rel_pos),
+            self.1.project_2d(camera_pos, camera_rot, screen_rel_pos),
+            self.2.project_2d(camera_pos, camera_rot, screen_rel_pos),
         )
     }
 
     pub fn translate(&self, offset: V3) -> Self {
-        self.map(|v| v + offset)
+        self.map(|v| v.translate(offset))
+    }
+
+    pub fn scale(&self, scale: V3) -> Self {
+        self.map(|v| v.scale(scale))
     }
 
     pub fn points(&self) -> [V3; 3] {

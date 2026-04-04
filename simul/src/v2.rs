@@ -19,8 +19,7 @@ impl V2 {
     pub fn reduce<F: Fn(f64, f64) -> f64>(&self, initial: f64, func: F) -> f64 {
         let acc = initial;
         let acc = func(acc, self.0);
-        let acc = func(acc, self.1);
-        acc
+        func(acc, self.1)
     }
 
     pub fn normal(&self) -> V2 {

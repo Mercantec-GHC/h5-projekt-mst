@@ -88,7 +88,7 @@ impl Window {
             time_before = time_now;
             app.update(delta_time);
 
-            self.canvas.set_draw_color(Color::RGB(20, 20, 20));
+            self.canvas.set_draw_color(Color::RGB(30, 30, 30));
             self.canvas.clear();
             app.render(self);
             self.canvas.present();
