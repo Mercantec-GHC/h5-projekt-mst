@@ -50,22 +50,10 @@ impl Scene {
 
             let tri2 = tri3.project_2d(camera_pos, camera_rot, screen_rel_pos);
 
-            let n0 = tri3
-                .middle()
-                .project_2d(camera_pos, camera_rot, screen_rel_pos);
-
-            let n1 = (tri3.middle() + normal.unit() * 0.2).project_2d(
-                camera_pos,
-                camera_rot,
-                screen_rel_pos,
-            );
-
             r.draw_triangles(&[tri2], *color);
             r.draw_line(tri2.0, tri2.1, Color::BLACK);
             r.draw_line(tri2.1, tri2.2, Color::BLACK);
             r.draw_line(tri2.2, tri2.0, Color::BLACK);
-
-            // r.draw_line(n0, n1, Color::RED);
         }
     }
 
@@ -149,10 +137,9 @@ impl Model {
                 ),
             );
 
-            let normal = tri.normal();
-            // let normal = V3(v0.normal[0] as _, v0.normal[2] as _, v0.normal[1] as _)
-            //     + V3(v1.normal[0] as _, v1.normal[2] as _, v1.normal[1] as _)
-            //     + V3(v2.normal[0] as _, v2.normal[2] as _, v2.normal[1] as _);
+            let normal = V3(v0.normal[0] as _, v0.normal[2] as _, v0.normal[1] as _)
+                + V3(v1.normal[0] as _, v1.normal[2] as _, v1.normal[1] as _)
+                + V3(v2.normal[0] as _, v2.normal[2] as _, v2.normal[1] as _);
 
             self.tris.push((tri, normal, color));
         }
