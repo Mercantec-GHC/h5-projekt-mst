@@ -50,4 +50,8 @@ impl Tri3 {
     pub fn normal(&self) -> V3 {
         (self.1 - self.0).cross(self.2 - self.1)
     }
+
+    pub fn middle(&self) -> V3 {
+        (self.0 + self.1 + self.2).map(|v| v / 3.0)
+    }
 }

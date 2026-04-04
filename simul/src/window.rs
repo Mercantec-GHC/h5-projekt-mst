@@ -129,14 +129,10 @@ impl Renderer for Window {
             .unwrap();
     }
     fn draw_line(&mut self, from: V2, to: V2, color: Color) {
-        let n = (to - from).normal().unit() * 0.0005;
-
-        let p0 = from - n;
-        let p1 = to - n;
-        let p2 = from + n;
-        let p3 = to + n;
-
-        self.draw_triangles(&[Tri2(p0, p1, p2), Tri2(p3, p2, p1)], color);
+        self.canvas.set_draw_color(color);
+        self.canvas
+            .draw_line(self.point_w2s(from), self.point_w2s(to))
+            .unwrap();
     }
 
     fn draw_triangles(&mut self, tris: &[Tri2], color: Color) {

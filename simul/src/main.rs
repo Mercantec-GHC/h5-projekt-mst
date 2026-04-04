@@ -67,22 +67,23 @@ impl<R: Renderer> window::App<R> for App {
     fn update(&mut self, delta_time: std::time::Duration) {
         self.rot.0 += PI * 2.0 * delta_time.as_secs_f64() * 0.1;
         self.rot.1 += PI * 2.0 * delta_time.as_secs_f64() * 0.1;
+        self.rot.2 += PI * 2.0 * delta_time.as_secs_f64() * 0.1;
     }
 
     fn render(&self, r: &mut R) {
         let mut scene = Scene::new();
 
-        // let mut model1 = Model::new();
-        // model1
-        //     .add_tri(
-        //         Tri3(V3(0.0, 0.0, 0.0), V3(0.3, 0.3, 0.0), V3(0.3, 0.0, 0.0)),
-        //         Color::RGB(200, 200, 200),
-        //     )
-        //     .rotate_by_m3x3(M3x3::from_v3_rot(self.rot))
-        //     .translate(V3(1.0, 0.0, 2.0))
-        //     .scale(V3(1.0, 1.0, 1.0));
-        //
-        // scene.draw_model(model1);
+        let mut model1 = Model::new();
+        model1
+            .add_tri(
+                Tri3(V3(0.0, 0.0, 0.0), V3(0.3, 0.3, 0.0), V3(0.3, 0.0, 0.0)),
+                Color::RGB(125, 165, 165),
+            )
+            .rotate_by_m3x3(M3x3::from_v3_rot(self.rot))
+            .translate(V3(1.0, 0.0, 1.0))
+            .scale(V3(1.0, 1.0, 1.0));
+
+        scene.draw_model(model1);
 
         let mut model2 = Model::new();
 
@@ -91,7 +92,7 @@ impl<R: Renderer> window::App<R> for App {
             .add_obj(&cube_obj, Color::RGB(165, 125, 165))
             .rotate_by_m3x3(M3x3::from_v3_rot(self.rot))
             .scale(V3(0.2, 0.2, 0.2))
-            .translate(V3(0.0, 0.0, 1.0));
+            .translate(V3(0.0, -0.2, 1.0));
 
         scene.draw_model(model2);
 
@@ -99,9 +100,9 @@ impl<R: Renderer> window::App<R> for App {
 
         scene.render(
             r,
-            V3(0.0, 0.0, 0.0),
+            V3(0.0, 0.0, -1.0),
             M3x3::from_v3_rot(V3(0.0, 0.0, 0.0)),
-            V3(0.0, 0.0, 1.0),
+            V3(0.0, 0.0, 0.0),
         );
 
         // r.draw_line(V2(0.0, 0.0), V2(0.6, 0.2), Color::RED);

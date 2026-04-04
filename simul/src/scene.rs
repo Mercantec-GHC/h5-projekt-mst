@@ -29,10 +29,8 @@ impl Scene {
             .iter()
             .enumerate()
             .map(|(i, (tri, ..))| {
-                let mut point_scores = tri.points().map(|p| (camera_pos - p).len());
-                point_scores.sort_by(|a, b| a.total_cmp(b));
-
-                (i, point_scores[0])
+                let mut score = (camera_pos - tri.middle()).len();
+                (i, score)
             })
             .rev()
             .collect::<Vec<_>>();
@@ -46,16 +44,28 @@ impl Scene {
             //     continue;
             // }
 
-            // if normal.dot(camera_pos - tri3.0) < 0.0 {
-            //     continue;
-            // }
+            if normal.dot(camera_pos - tri3.0) < 0.0 {
+                continue;
+            }
 
             let tri2 = tri3.project_2d(camera_pos, camera_rot, screen_rel_pos);
+
+            let n0 = tri3
+                .middle()
+                .project_2d(camera_pos, camera_rot, screen_rel_pos);
+
+            let n1 = (tri3.middle() + normal.unit() * 0.2).project_2d(
+                camera_pos,
+                camera_rot,
+                screen_rel_pos,
+            );
 
             r.draw_triangles(&[tri2], *color);
             r.draw_line(tri2.0, tri2.1, Color::BLACK);
             r.draw_line(tri2.1, tri2.2, Color::BLACK);
             r.draw_line(tri2.2, tri2.0, Color::BLACK);
+
+            // r.draw_line(n0, n1, Color::RED);
         }
     }
 
@@ -91,6 +101,7 @@ impl Model {
     pub fn rotate_by_m3x3(&mut self, rot: M3x3) -> &mut Self {
         for tri in &mut self.tris {
             tri.0 = tri.0.rotate_by_m3x3(rot);
+            tri.1 = tri.1.rotate_by_m3x3(rot);
         }
         self
     }
@@ -108,33 +119,42 @@ impl Model {
     }
 
     pub fn add_obj(&mut self, obj: &Obj, color: Color) -> &mut Self {
+        // if our triangle definition convention is [0, 1, 2]
+        // obj's is [2, 1, 0].
+        //
+        // likewise, if our coordinate system is [x, y, z],
+        // obj's is [x, z, y].
+
         let count = obj.indices.len() / 3;
         for i in 0..count {
-            let v0 = obj.vertices[obj.indices[i * 3] as usize];
+            let v2 = obj.vertices[obj.indices[i * 3] as usize];
             let v1 = obj.vertices[obj.indices[i * 3 + 1] as usize];
-            let v2 = obj.vertices[obj.indices[i * 3 + 2] as usize];
+            let v0 = obj.vertices[obj.indices[i * 3 + 2] as usize];
 
-            self.tris.push((
-                Tri3(
-                    V3(
-                        v0.position[0] as _,
-                        v0.position[1] as _,
-                        v0.position[2] as _,
-                    ),
-                    V3(
-                        v1.position[0] as _,
-                        v1.position[1] as _,
-                        v1.position[2] as _,
-                    ),
-                    V3(
-                        v2.position[0] as _,
-                        v2.position[1] as _,
-                        v2.position[2] as _,
-                    ),
+            let tri = Tri3(
+                V3(
+                    v0.position[0] as _,
+                    v0.position[2] as _,
+                    v0.position[1] as _,
                 ),
-                V3(v0.normal[0] as _, v0.normal[1] as _, v0.normal[2] as _),
-                color,
-            ));
+                V3(
+                    v1.position[0] as _,
+                    v1.position[2] as _,
+                    v1.position[1] as _,
+                ),
+                V3(
+                    v2.position[0] as _,
+                    v2.position[2] as _,
+                    v2.position[1] as _,
+                ),
+            );
+
+            let normal = tri.normal();
+            // let normal = V3(v0.normal[0] as _, v0.normal[2] as _, v0.normal[1] as _)
+            //     + V3(v1.normal[0] as _, v1.normal[2] as _, v1.normal[1] as _)
+            //     + V3(v2.normal[0] as _, v2.normal[2] as _, v2.normal[1] as _);
+
+            self.tris.push((tri, normal, color));
         }
         self
     }

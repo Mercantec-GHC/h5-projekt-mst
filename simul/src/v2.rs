@@ -16,6 +16,10 @@ impl V2 {
         Self(func(self.0, rhs.0), func(self.1, rhs.1))
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = f64> {
+        [self.0, self.1].into_iter()
+    }
+
     pub fn reduce<F: Fn(f64, f64) -> f64>(&self, initial: f64, func: F) -> f64 {
         let acc = initial;
         let acc = func(acc, self.0);

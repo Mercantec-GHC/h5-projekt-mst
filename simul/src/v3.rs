@@ -22,11 +22,16 @@ impl V3 {
         )
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = f64> {
+        [self.0, self.1, self.2].into_iter()
+    }
+
     pub fn reduce<F: Fn(f64, f64) -> f64>(&self, initial: f64, func: F) -> f64 {
-        let acc = initial;
-        let acc = func(acc, self.0);
-        let acc = func(acc, self.1);
-        func(acc, self.0)
+        let mut acc = initial;
+        for v in self.iter() {
+            acc = func(acc, v);
+        }
+        acc
     }
 
     pub fn cross(&self, rhs: V3) -> Self {
@@ -67,7 +72,7 @@ impl V3 {
     }
 
     pub fn len(&self) -> f64 {
-        self.map(|v| v.powi(2)).reduce(0.0, |acc, v| acc + v)
+        self.map(|v| v.powi(2)).reduce(0.0, |acc, v| acc + v).sqrt()
     }
 
     pub fn unit(&self) -> V3 {
