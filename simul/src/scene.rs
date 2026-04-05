@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use obj::Obj;
 
 use crate::{
@@ -48,12 +50,24 @@ impl Scene {
                 continue;
             }
 
+            let light = V3(1.0, 1.0, -1.0);
+
+            let exposure = 1.5 - normal.angle(light) / PI;
+
+            let (red, green, blue) = color.rgb();
+
+            let color = Color::RGB(
+                (red as f64 * exposure).clamp(0.0, 255.0) as _,
+                (green as f64 * exposure).clamp(0.0, 255.0) as _,
+                (blue as f64 * exposure).clamp(0.0, 255.0) as _,
+            );
+
             let tri2 = tri3.project_2d(camera_pos, camera_rot, screen_rel_pos);
 
-            r.draw_triangles(&[tri2], *color);
-            r.draw_line(tri2.0, tri2.1, Color::BLACK);
-            r.draw_line(tri2.1, tri2.2, Color::BLACK);
-            r.draw_line(tri2.2, tri2.0, Color::BLACK);
+            r.draw_triangles(&[tri2], color);
+            // r.draw_line(tri2.0, tri2.1, Color::BLACK);
+            // r.draw_line(tri2.1, tri2.2, Color::BLACK);
+            // r.draw_line(tri2.2, tri2.0, Color::BLACK);
         }
     }
 

@@ -1,8 +1,8 @@
 #![allow(unused)]
 
-use std::{collections::HashMap, f64::consts::PI, fs::File, io::BufReader};
-
 use obj::{Obj, load_obj};
+use serde::Deserialize;
+use std::{collections::HashMap, f64::consts::PI, fs::File, io::BufReader};
 
 use crate::{
     m3x3::M3x3,
@@ -65,38 +65,31 @@ impl App {
 
 impl<R: Renderer> window::App<R> for App {
     fn update(&mut self, delta_time: std::time::Duration) {
-        self.rot.0 += PI * 2.0 * delta_time.as_secs_f64() * 0.1;
-        self.rot.1 += PI * 2.0 * delta_time.as_secs_f64() * 0.1;
-        self.rot.2 += PI * 2.0 * delta_time.as_secs_f64() * 0.1;
+        self.rot.0 += PI * 2.0 * delta_time.as_secs_f64() * 0.2;
+        self.rot.1 += PI * 2.0 * delta_time.as_secs_f64() * 0.2;
+        // self.rot.2 += PI * 2.0 * delta_time.as_secs_f64() * 0.2;
     }
 
     fn render(&self, r: &mut R) {
         let mut scene = Scene::new();
 
-        let mut model1 = Model::new();
-        model1
-            .add_tri(
-                Tri3(V3(0.0, 0.0, 0.0), V3(0.3, 0.3, 0.0), V3(0.3, 0.0, 0.0)),
-                Color::RGB(125, 165, 165),
-            )
-            .rotate_by_m3x3(M3x3::from_v3_rot(self.rot))
-            .translate(V3(1.0, 0.0, 1.0))
-            .scale(V3(1.0, 1.0, 1.0));
-
-        scene.draw_model(model1);
-
-        let mut model2 = Model::new();
-
+        let mut cube = Model::new();
         let cube_obj = self.assets.get("assets/cube.obj").unwrap();
-        model2
-            .add_obj(&cube_obj, Color::RGB(165, 125, 165))
+        cube.add_obj(&cube_obj, Color::RGB(165, 125, 165))
+            .rotate_by_m3x3(M3x3::from_v3_rot(self.rot))
+            .scale(V3(0.4, 0.4, 0.4))
+            .translate(V3(0.0, 0.0, 1.0));
+        scene.draw_model(cube);
+
+        let mut probe = Model::new();
+        let probe_obj = self.assets.get("assets/probe.obj").unwrap();
+        probe
+            .add_obj(&probe_obj, Color::RGB(165, 125, 165))
+            .rotate_by_m3x3(M3x3::new_rotate_x(PI))
             .rotate_by_m3x3(M3x3::from_v3_rot(self.rot))
             .scale(V3(0.2, 0.2, 0.2))
-            .translate(V3(0.0, -0.2, 1.0));
-
-        scene.draw_model(model2);
-
-        // scene.draw_obj(&cube_obj, V3(0.1, 0.1, 0.1), Color::RGB(125, 125, 125));
+            .translate(V3(1.2, 0.0, 1.0));
+        scene.draw_model(probe);
 
         scene.render(
             r,
@@ -104,17 +97,33 @@ impl<R: Renderer> window::App<R> for App {
             M3x3::from_v3_rot(V3(0.0, 0.0, 0.0)),
             V3(0.0, 0.0, 0.0),
         );
-
-        // r.draw_line(V2(0.0, 0.0), V2(0.6, 0.2), Color::RED);
     }
 
     fn event(&mut self, event: Event) {}
+}
+
+#[derive(Debug, Deserialize)]
+struct Measurement {
+    time_delta_us: i64,
+    accel_x: f64,
+    accel_y: f64,
+    accel_z: f64,
+    rotation_x: f64,
+    rotation_y: f64,
+    rotation_z: f64,
 }
 
 fn main() {
     let mut window = Window::new();
     let mut app = App::new();
     app.assets.load("assets/cube.obj");
+    app.assets.load("assets/probe.obj");
+
+    let mut reader = csv::Reader::from_path("assets/inputs_still.csv").unwrap();
+    for entry in reader.deserialize::<Measurement>() {
+        let entry: Measurement = entry.unwrap();
+        // println!("{:?}", entry);
+    }
 
     window.run(&mut app);
 }

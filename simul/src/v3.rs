@@ -1,6 +1,5 @@
-use std::ops::{Add, Div, Mul, Neg, Sub};
-
 use crate::{m3x3::M3x3, v2::V2};
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Clone, Copy, Debug)]
 pub struct V3(pub f64, pub f64, pub f64);
@@ -57,6 +56,10 @@ impl V3 {
         let d = (a - c).rotate_by_m3x3(camera_rot);
         let e = screen_rel_pos - c;
         V2(e.2 / d.2 * d.0 + e.0, e.2 / d.2 * d.1 + e.1)
+    }
+
+    pub fn angle(&self, rhs: Self) -> f64 {
+        (self.dot(rhs) / (self.len() * rhs.len())).acos()
     }
 
     pub fn dot(&self, rhs: Self) -> f64 {
