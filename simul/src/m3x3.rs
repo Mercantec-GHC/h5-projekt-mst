@@ -13,6 +13,10 @@ impl M3x3 {
         Self([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
     }
 
+    pub fn new(v: [[f64; 3]; 3]) -> Self {
+        Self(v)
+    }
+
     pub fn from_v3_rot(rot: V3) -> Self {
         M3x3::new_rotate_x(rot.0) * M3x3::new_rotate_y(rot.1) * M3x3::new_rotate_z(rot.2)
     }

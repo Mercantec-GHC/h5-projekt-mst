@@ -4,6 +4,7 @@ use obj::Obj;
 
 use crate::{
     m3x3::M3x3,
+    quats::RadianQuat,
     tri2::Tri2,
     tri3::Tri3,
     v3::V3,
@@ -104,6 +105,14 @@ impl Model {
         for tri in &mut self.tris {
             tri.0 = tri.0.rotate_by_m3x3(rot);
             tri.1 = tri.1.rotate_by_m3x3(rot);
+        }
+        self
+    }
+
+    pub fn rotate_by_quat(&mut self, rot: RadianQuat) -> &mut Self {
+        for tri in &mut self.tris {
+            tri.0 = tri.0.rotate_by_quat(rot);
+            tri.1 = tri.1.rotate_by_quat(rot);
         }
         self
     }

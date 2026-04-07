@@ -6,6 +6,7 @@ use std::{collections::HashMap, f64::consts::PI, fs::File, io::BufReader};
 
 use crate::{
     m3x3::M3x3,
+    quats::RadianQuat,
     scene::{Model, Scene},
     tri2::Tri2,
     tri3::Tri3,
@@ -15,6 +16,7 @@ use crate::{
 };
 
 mod m3x3;
+mod quats;
 mod scene;
 mod tri2;
 mod tri3;
@@ -75,8 +77,7 @@ fn calculate_accel_axis_angle(axis: f64, tangent0: f64, tangent1: f64) -> f64 {
 
 impl<R: Renderer> window::App<R> for App {
     fn update(&mut self, delta_time: std::time::Duration) {
-        self.rot.0 += PI * 2.0 * delta_time.as_secs_f64() * 0.2;
-        self.rot.1 += PI * 2.0 * delta_time.as_secs_f64() * 0.2;
+        self.rot.0 += PI * 2.0 * delta_time.as_secs_f64() * 0.05;
         // self.rot.2 += PI * 2.0 * delta_time.as_secs_f64() * 0.2;
 
         self.motion_dev
@@ -104,7 +105,7 @@ impl<R: Renderer> window::App<R> for App {
         let mut cube = Model::new();
         let cube_obj = self.assets.get("assets/cube.obj").unwrap();
         cube.add_obj(&cube_obj, Color::RGB(165, 125, 165))
-            .rotate_by_m3x3(M3x3::from_v3_rot(self.rot))
+            .rotate_by_m3x3(self.dev_rot_rot)
             .scale(V3(0.4, 0.4, 0.4))
             .translate(V3(0.0, 0.0, 1.0));
         scene.draw_model(cube);

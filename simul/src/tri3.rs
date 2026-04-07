@@ -1,4 +1,4 @@
-use crate::{m3x3::M3x3, tri2::Tri2, v3::V3};
+use crate::{m3x3::M3x3, quats::RadianQuat, tri2::Tri2, v3::V3};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Tri3(pub V3, pub V3, pub V3);
@@ -25,6 +25,9 @@ impl Tri3 {
     }
     pub fn rotate_by_m3x3(&self, rot: M3x3) -> Self {
         self.map(|v| v.rotate_by_m3x3(rot))
+    }
+    pub fn rotate_by_quat(&self, rot: RadianQuat) -> Self {
+        self.map(|v| v.rotate_by_quat(rot))
     }
 
     pub fn project_2d(&self, camera_pos: V3, camera_rot: M3x3, screen_rel_pos: V3) -> Tri2 {

@@ -1,4 +1,8 @@
-use crate::{m3x3::M3x3, v2::V2};
+use crate::{
+    m3x3::M3x3,
+    quats::{Quat, RadianQuat},
+    v2::V2,
+};
 use std::ops::{Add, Div, Mul, Neg, Sub};
 
 #[derive(Clone, Copy, Debug)]
@@ -42,6 +46,19 @@ impl V3 {
     pub fn rotate_by_v3(&self, rot: V3) -> Self {
         M3x3::new_rotate_z(rot.2)
             * (M3x3::new_rotate_y(rot.1) * (M3x3::new_rotate_x(rot.0) * *self))
+    }
+
+    pub fn rotate_by_quat(&self, rot: RadianQuat) -> Self {
+        let u = rot.vector_quat();
+        let theta = rot.rad;
+        let q_real = theta.cos();
+        let q_vector = u * theta.sin();
+        let p = *self;
+
+        let r = p
+            + (u.cross(p)) * 2.0 * theta.cos() * theta.sin()
+            + (u * 2.0 * theta.sin().powi(2)).cross(u.cross(p));
+        r
     }
 
     pub fn rotate_by_m3x3(&self, rot: M3x3) -> Self {
