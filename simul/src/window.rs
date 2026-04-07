@@ -3,7 +3,8 @@ use std::time::{Duration, Instant};
 use sdl3::{
     Sdl,
     event::Event as SdlEvent,
-    render::{Canvas, FPoint, FRect, Vertex, VertexIndices},
+    render::{Canvas, FPoint, FRect, TextureQuery, Vertex, VertexIndices},
+    ttf::Font,
     video::Window as SdlWindow,
 };
 
@@ -11,8 +12,8 @@ pub use sdl3::{keyboard::Keycode, pixels::Color};
 
 use crate::{tri2::Tri2, v2::V2};
 
-pub static WIDTH: f64 = 1280.0;
-pub static HEIGHT: f64 = 720.0;
+pub static WIDTH: f64 = 1920.0;
+pub static HEIGHT: f64 = 1080.0;
 
 pub trait App<R: Renderer> {
     fn update(&mut self, delta_time: Duration);
@@ -24,6 +25,7 @@ pub trait Renderer {
     fn draw_rect(&mut self, pos: V2, size: V2, color: Color);
     fn draw_line(&mut self, from: V2, to: V2, color: Color);
     fn draw_triangles(&mut self, tris: &[Tri2], color: Color);
+    fn draw_text(&mut self, text: &str, pos: V2, color: Color);
 }
 
 pub enum Event {
@@ -32,14 +34,17 @@ pub enum Event {
 }
 
 pub struct Window {
-    sdl_context: Sdl,
+    sdl_cx: Sdl,
     canvas: Canvas<SdlWindow>,
+    font: Box<Font<'static>>,
 }
 
 impl Window {
     pub fn new() -> Self {
-        let sdl_context = sdl3::init().unwrap();
-        let video_subsystem = sdl_context.video().unwrap();
+        let sdl_cx = sdl3::init().unwrap();
+        let ttf_cx = sdl3::ttf::init().unwrap();
+
+        let video_subsystem = sdl_cx.video().unwrap();
         let window = video_subsystem
             .window("Game", WIDTH as u32, HEIGHT as u32)
             .position_centered()
@@ -47,18 +52,25 @@ impl Window {
             .unwrap();
         let mut canvas = window.into_canvas();
 
+        let font = Box::new(
+            ttf_cx
+                .load_font("/usr/share/fonts/TTF/FiraCode-Medium.ttf", 20.0)
+                .unwrap(),
+        );
+
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
         canvas.present();
 
         Self {
-            sdl_context,
+            sdl_cx,
             canvas,
+            font,
         }
     }
 
     pub fn run(&mut self, app: &mut impl App<Self>) {
-        let mut event_pump = self.sdl_context.event_pump().unwrap();
+        let mut event_pump = self.sdl_cx.event_pump().unwrap();
 
         let mut time_before = Instant::now();
         let time_per_frame = Duration::from_secs_f64(1.0 / 60.0);
@@ -150,6 +162,30 @@ impl Renderer for Window {
         self.canvas
             .render_geometry(&vertices, None, VertexIndices::Sequential)
             .unwrap();
+    }
+
+    fn draw_text(&mut self, text: &str, pos: V2, color: Color) {
+        let texture_creator = self.canvas.texture_creator();
+
+        let surface = self.font.render(text).blended(color).unwrap();
+        let texture = texture_creator
+            .create_texture_from_surface(&surface)
+            .unwrap();
+
+        let TextureQuery { width, height, .. } = texture.query();
+
+        let pos = self.point_w2s(pos);
+
+        self.canvas.copy(
+            &texture,
+            None,
+            FRect {
+                x: pos.0 as _,
+                y: pos.1 as _,
+                w: width as _,
+                h: height as _,
+            },
+        );
     }
 }
 

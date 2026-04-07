@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::ops::{Mul, MulAssign};
 
 use crate::v3::V3;
 
@@ -8,6 +8,9 @@ pub struct M3x3([[f64; 3]; 3]);
 impl M3x3 {
     pub fn init(v: f64) -> Self {
         Self([[v; 3]; 3])
+    }
+    pub fn identity() -> Self {
+        Self([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
     }
 
     pub fn from_v3_rot(rot: V3) -> Self {
@@ -70,5 +73,10 @@ impl Mul<V3> for M3x3 {
             x * yx + y * yy + z * yz,
             x * zx + y * zy + z * zz,
         )
+    }
+}
+impl MulAssign for M3x3 {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs;
     }
 }
