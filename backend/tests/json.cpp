@@ -13,4 +13,12 @@ int main()
     ASSERT_EQ(**json::parse("3.14"), *json::Value::make_f64(3.14));
     ASSERT_EQ(**json::parse("\"hello world\""),
         *json::Value::make_string("hello world"));
+
+
+    {
+        auto object = *json::parse(R"({"rotation":-0.0123})");
+        auto query_result = object->query(std::string_view(".rotation"));
+        auto f64_value = query_result.value()->get_f64();
+        ASSERT_EQ(f64_value, -0.0123);
+    }
 }

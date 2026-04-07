@@ -18,7 +18,7 @@ GDB = 0
 ifeq ($(RELEASE),1)
 	CXXFLAGS += -O3
 else
-	CXXFLAGS += -g -Wno-unused
+	CXXFLAGS += -O0 -g -Wno-unused
 
 	ifeq ($(GDB),1)
 		CXXFLAGS += -ggdb
@@ -26,8 +26,17 @@ else
 endif
 
 ASAN = 0
+UBSAN = 0
 ifeq ($(ASAN),1)
-	CXXFLAGS += -fsanitize=address
+	ifeq ($(UBSAN),1)
+		CXXFLAGS += -fsanitize=address,undefined
+	else
+		CXXFLAGS += -fsanitize=address
+	endif
+else
+	ifeq ($(UBSAN),1)
+		CXXFLAGS += -fsanitize=undefined
+	endif
 endif
 
 MQTT_HOST=

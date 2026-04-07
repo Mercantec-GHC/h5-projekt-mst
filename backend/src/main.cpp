@@ -7,6 +7,7 @@
 #include <iostream>
 #include <print>
 #include <span>
+#include <stdexcept>
 #include <string_view>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -36,10 +37,22 @@ int main(void)
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         //
         std::println("Skateboard: {}", text);
-        // auto parsed = mst::json::parse(text).value();
+        auto result = mst::json::parse(text);
 
-        // std::println(".acceleration[0]",
-        //     parsed->query(".acceleration[0]").value()->get_i64());
+        if (!result) {
+            std::println(stderr,
+                "error: {} at {}",
+                result.error().message,
+                result.error().loc.idx);
+            return;
+        }
+        try {
+            auto parsed = std::move(result.value());
+            std::println(".rotation = {}",
+                parsed->query(".rotation").value()->get_f64());
+        } catch (std::runtime_error& ex) {
+            std::println(stderr, "exception: {}", ex.what());
+        }
     });
 
     auto mqtt_thread = std::thread([&]() {
@@ -64,5 +77,7 @@ int main(void)
     {
         auto x = mgr.start();
     }
+
+    mqtt_thread.join();
     return 0;
 }

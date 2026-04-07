@@ -50,14 +50,14 @@ public:
             return Tok { TokTy::Eof, std::string_view(nullptr, 0), loc };
         }
         bool matched = false;
-        while (*i < m_len && std::strchr(" \t\r\n", m_text[*i]) != NULL) {
+        while (*i < m_len && std::strchr(" \t\r\n", m_text[*i]) != nullptr) {
             matched = true;
             step();
         }
         if (matched) {
             return next();
         }
-        if (strchr(",:[]{}0", m_text[*i]) != NULL) {
+        if (strchr(",:[]{}", m_text[*i]) != nullptr) {
             auto ty = (TokTy)m_text[*i];
             step();
             return tok(ty, loc);
@@ -69,7 +69,7 @@ public:
         if (matched) {
             return make_ident_tok(loc, i);
         }
-        if (m_text[*i] >= '1' && m_text[*i] <= '9') {
+        if (m_text[*i] == '-' || (m_text[*i] >= '0' && m_text[*i] <= '9')) {
             return make_number_tok(loc, i);
         }
         if (m_text[*i] == '\"') {
@@ -114,6 +114,7 @@ private:
 
     auto make_number_tok(Loc loc, size_t* i) -> Tok
     {
+        step();
         while (*i < m_len && m_text[*i] >= '0' && m_text[*i] <= '9') {
             step();
         }
@@ -220,12 +221,12 @@ public:
             CHECK(step());
             return val;
         } else if (*ty == TokTy::Int) {
-            int64_t value = std::strtol(m_tok.text.data(), NULL, 10);
+            int64_t value = std::strtol(m_tok.text.data(), nullptr, 10);
             auto val = std::make_unique<Value>(Type::I64, value);
             CHECK(step());
             return val;
         } else if (*ty == TokTy::Float) {
-            double value = std::strtod(m_tok.text.data(), NULL);
+            double value = std::strtod(m_tok.text.data(), nullptr);
             auto val = std::make_unique<Value>(Type::F64, value);
             CHECK(step());
             return val;
@@ -347,17 +348,17 @@ public:
         size_t idx = m_idx;
         size_t* i = &m_idx;
         if (*i >= m_text.size()) {
-            return tok(TokTy::Eof, idx);
+            return Tok { TokTy::Eof, std::string_view(nullptr, 0), idx };
         }
         bool matched = false;
-        while (*i < m_text.size() && strchr(" \t\r\n", m_text[*i]) != NULL) {
+        while (*i < m_text.size() && strchr(" \t\r\n", m_text[*i]) != nullptr) {
             matched = true;
             step();
         }
         if (matched) {
             return next();
         }
-        if (strchr(".[]0", m_text[*i]) != NULL) {
+        if (strchr(".[]0", m_text[*i]) != nullptr) {
             auto ty = static_cast<TokTy>(m_text[*i]);
             step();
             return tok(ty, idx);
@@ -407,7 +408,7 @@ private:
 
     auto tok(TokTy ty, size_t idx) -> Tok
     {
-        return { ty, std::string_view(&m_text[idx], this->m_idx - idx), idx };
+        return { ty, std::string_view(&m_text[idx], m_idx - idx), idx };
     }
 
     void step()
@@ -437,6 +438,7 @@ class Parser {
 public:
     Parser(std::string_view text)
         : m_tokenizer(text)
+        , m_tok(m_tokenizer.next().value())
     {
     }
 
@@ -522,7 +524,7 @@ auto resolve(Parser& parser, ValueT& node) -> Result<ValueT*, std::string>
         case PathSegTy::Idx: {
             if (!node.is(Type::Array))
                 return std::unexpected("expected array");
-            auto idx = strtoull(seg->tok.text.data(), NULL, 10);
+            auto idx = strtoull(seg->tok.text.data(), nullptr, 10);
             if (!node.has(idx))
                 return std::unexpected(std::format(
                     "array index {} out of bounds {}", idx, node.size()));
