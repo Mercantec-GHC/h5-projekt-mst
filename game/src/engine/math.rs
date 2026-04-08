@@ -11,11 +11,13 @@ impl V3 {
         Self(v, v, v)
     }
 
+    /// See https://en.wikipedia.org/wiki/3D_projection#Mathematical_formula
+    /// for details on the implementation.
     pub fn project_2d(&self, camera_pos: V3) -> V2 {
-        // V2(self.0 / self.2, self.1 / self.2)
+        let a = *self;
         let c = camera_pos;
-        let d = *self - c;
-        let e = V3(0.0, 0.0, 0.0) - c;
+        let d = a - c;
+        let e = (camera_pos + V3(0.0, 0.0, 1.0)) - c;
         V2(e.2 / d.2 * d.0 + e.0, e.2 / d.2 * d.1 + e.1)
     }
 
@@ -32,7 +34,7 @@ impl V3 {
     }
 
     pub fn len(&self) -> f64 {
-        f64::sqrt(self.0.powi(2) + self.1.powi(2) + self.2.powi(2))
+        (self.0.powi(2) + self.1.powi(2) + self.2.powi(2)).sqrt()
     }
 
     pub fn unit(&self) -> Self {
@@ -50,6 +52,10 @@ impl V3 {
 
     pub fn distance(&self, rhs: Self) -> f64 {
         (*self - rhs).len()
+    }
+
+    pub fn angle(&self, rhs: Self) -> f64 {
+        (self.dot(rhs) / (self.len() * rhs.len())).acos()
     }
 }
 

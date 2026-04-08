@@ -231,7 +231,7 @@ impl<R: Renderer> engine::Game<R> for Game {
         for object in &self.objects {
             object.render(&mut scene);
         }
-        scene.render(r, self.camera_pos, V3(0.0, 0.0, 0.0));
+        scene.render(r, self.camera_pos);
     }
 
     fn event(&mut self, event: engine::Event) {

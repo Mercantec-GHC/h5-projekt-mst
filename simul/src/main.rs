@@ -220,7 +220,7 @@ impl MotionDevice {
 }
 
 fn main() {
-    let mut reader = csv::Reader::from_path("assets/inputs_moving.csv").unwrap();
+    let mut reader = csv::Reader::from_path("assets/inputs_still.csv").unwrap();
     let mut measurements = Vec::<Measurement>::new();
     for entry in reader.deserialize::<Measurement>() {
         let entry: Measurement = entry.unwrap();
