@@ -19,6 +19,7 @@ use crate::{
 
 struct Skateboard {
     pos: V3,
+    size: V3,
     vel: V3,
     rot: V3,
     nyoom_factor: f64,
@@ -30,13 +31,15 @@ impl Skateboard {
         self.vel.0 = self.pivot_deg * delta_time.as_secs_f64();
         self.pos += self.vel * delta_time.as_secs_f64();
         self.nyoom_factor += 16.0 * delta_time.as_secs_f64();
-
-        // rot.0 += delta_time.as_secs_f64() * PI * 1.0;
-        // rot.1 += delta_time.as_secs_f64() * PI * 0.2;
-        // rot.2 += delta_time.as_secs_f64() * PI * 2.0;
     }
 
     fn render(&self, scene: &mut Scene) {
+        scene.draw_shape(
+            self.pos,
+            &Shape::new_cube(self.size),
+            Color::Green,
+            Color::Black,
+        );
         let board_size = V3(0.175, 0.005, 0.05);
         let trucks = {
             let anchor_size = V3(0.005, 0.01, 0.005);
@@ -162,6 +165,7 @@ impl Game {
         Self {
             skateboard: Skateboard {
                 pos: V3(0.0, -0.15, -0.4),
+                size: V3(0.1, 0.05, 0.2),
                 vel: V3(0.0, 0.0, 0.2),
                 rot: V3(0.0, PI * 0.5, 0.0),
                 nyoom_factor: 0.0,
@@ -248,18 +252,13 @@ struct Object {
 }
 
 enum ObjectKind {
-    Section {
-        objects: Vec<ObjectKind>,
-        pos: V3,
-        vel: V3,
-    },
     Obstacle {
         pos: V3,
         vel: V3,
+        size: V3,
     },
     Ground {
         pos: V3,
-        vel: V3,
         rot: V3,
         grid_item_size: f64,
         grid_width: i32,
@@ -314,23 +313,14 @@ impl Object {
             ObjectKind::Obstacle { pos, vel, .. } => {
                 *pos += *vel * delta_time.as_secs_f64();
             }
-            ObjectKind::Ground { pos, vel, .. } => {
-
-                // *vel += V3(vel.0, vel.1, vel.0 - 0.01 * delta_time.as_secs_f64());
-            }
-            ObjectKind::Section { objects, .. } => todo!(),
+            ObjectKind::Ground { .. } => {}
         }
     }
 
     fn render(&self, scene: &mut Scene) {
         match self.kind {
-            ObjectKind::Obstacle { pos, .. } => {
-                scene.draw_shape(
-                    pos,
-                    &Shape::new_cube(V3(0.2, 0.1, 0.2)),
-                    Color::Green,
-                    Color::Black,
-                );
+            ObjectKind::Obstacle { pos, size, .. } => {
+                scene.draw_shape(pos, &Shape::new_cube(size), Color::Red, Color::Black);
             }
             ObjectKind::Ground {
                 pos,
@@ -351,7 +341,6 @@ impl Object {
                 let ground = ShapeGroup::new(shapes);
                 ground.draw(pos, scene, Color::Cyan, Color::Black);
             }
-            ObjectKind::Section { ref objects, .. } => {}
         }
     }
 }
@@ -366,20 +355,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let objects: Vec<ObjectKind> = vec![
         ObjectKind::Ground {
-            pos: V3(0.0, -0.35, -0.4),
-            vel: V3(0.0, 0.0, 0.0),
+            pos: V3(0.0, -0.25, -0.4),
             rot: V3(0.0, 0.0, 0.0),
             grid_item_size: 0.1,
             grid_width: 10,
-            grid_depth: 20,
+            grid_depth: 40,
         },
-        ObjectKind::Ground {
-            pos: V3(0.0, -0.35, 1.6),
+        ObjectKind::Obstacle {
+            pos: V3(0.0, -0.248, 1.0),
             vel: V3(0.0, 0.0, 0.0),
-            rot: V3(0.0, 0.0, 0.0),
-            grid_item_size: 0.1,
-            grid_width: 10,
-            grid_depth: 20,
+            size: V3(0.1, 0.1, 0.1),
         },
     ];
 
