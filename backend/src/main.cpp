@@ -64,9 +64,6 @@ int main(void)
         }
     });
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    mqtt_client.publish("/", "published from c++");
-
     auto mgr = mst::event::Manager::create().value();
     auto x = mst::Server::bind(mgr, "0.0.0.0", PORT);
     if (!x) {

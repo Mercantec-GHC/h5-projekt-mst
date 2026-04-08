@@ -67,6 +67,19 @@ auto Manager::start() -> Result<void>
     }
 }
 
+auto Manager::register_event(std::unique_ptr<Event> event, int fd)
+    -> Result<void>
+{
+    this->events.emplace_back(std::move(event));
+    auto poll_event = epoll_event { .events = EPOLLIN,
+        .data = { .ptr = events.back().get() } };
+
+    if (::epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, fd, &poll_event) < 0) {
+        return std::unexpected(errno_shim("could not add listener to epoll"));
+    }
+    return { };
+}
+
 auto Manager::deregister_event(int fd) -> Result<void>
 {
     auto poll_event = epoll_event { .events = EPOLLIN, .data = { } };

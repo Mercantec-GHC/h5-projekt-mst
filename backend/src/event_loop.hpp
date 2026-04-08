@@ -33,7 +33,7 @@ namespace event {
     };
 
     template <typename Data>
-    auto make_event(Data&& data) -> std::unique_ptr<Event>
+    static auto make_event(Data&& data) -> std::unique_ptr<Event>
     {
         return std::make_unique<Event>(std::make_unique<Data>(std::move(data)));
     }
@@ -41,22 +41,8 @@ namespace event {
     class Manager {
     public:
         auto start() -> Result<void>;
-        template <typename Data>
-        auto register_event(Data&& data, int fd) -> Result<void>
-        {
-
-            auto event = make_event(std::move(data));
-            this->events.emplace_back(std::move(event));
-            auto poll_event = epoll_event { .events = EPOLLIN,
-                .data = { .ptr = events.back().get() } };
-
-            if (::epoll_ctl(this->epoll_fd, EPOLL_CTL_ADD, fd, &poll_event)
-                < 0) {
-                return std::unexpected(
-                    errno_shim("could not add listener to epoll"));
-            }
-            return { };
-        }
+        auto register_event(std::unique_ptr<Event> event, int fd)
+            -> Result<void>;
         auto deregister_event(int fd) -> Result<void>;
         static auto create() -> Result<Manager>;
 
