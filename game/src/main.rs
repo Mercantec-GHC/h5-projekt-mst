@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-pub mod editor;
 mod engine;
 mod event_queue;
 pub mod vermiparous;
