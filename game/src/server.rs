@@ -21,11 +21,11 @@ pub struct Measurement {
     pub angle: f64,
 }
 
-pub struct Server2 {
+pub struct Server {
     stream: TcpStream,
 }
 
-impl Server2 {
+impl Server {
     pub fn new() -> io::Result<Self> {
         Ok(Self {
             stream: TcpStream::connect("127.0.0.1:8889")?,

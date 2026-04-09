@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 mod engine;
-mod server2;
+mod server;
 
 use core::panic;
 use std::{
@@ -14,7 +14,7 @@ use std::{
 
 use crate::{
     engine::{Color, Key, Renderer, Scene, Shape, V2, V3},
-    server2::Server2,
+    server::Server,
 };
 
 struct Skateboard {
@@ -388,7 +388,7 @@ impl ShapeGroup {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let t = thread::spawn(|| {
-        let mut server = Server2::new().unwrap();
+        let mut server = Server::new().unwrap();
         server
             .subscribe(|measurement| {
                 println!("angle = {}", measurement.angle);

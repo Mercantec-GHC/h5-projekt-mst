@@ -1,7 +1,6 @@
-#include "server2.hpp"
+#include "server.hpp"
 #include <algorithm>
 #include <cerrno>
-#include <cstdint>
 #include <cstring>
 #include <format>
 #include <iterator>
@@ -16,7 +15,7 @@
 #include <vector>
 
 namespace {
-using namespace mst::server2;
+using namespace mst::server;
 
 struct ReqHeader {
     enum ReqTy {
@@ -77,7 +76,7 @@ auto get_listener_socket() -> int
 
 }
 
-namespace mst::server2 {
+namespace mst::server {
 
 struct Server::State {
     std::mutex mx;

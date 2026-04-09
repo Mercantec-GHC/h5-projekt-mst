@@ -3,7 +3,7 @@
 #include <memory>
 #include <stdexcept>
 
-namespace mst::server2 {
+namespace mst::server {
 
 struct Error : public std::runtime_error {
     using std::runtime_error::runtime_error;

@@ -1,6 +1,6 @@
 #include "json.hpp"
 #include "mqtt.hpp"
-#include "server2.hpp"
+#include "server.hpp"
 #include <print>
 #include <stdexcept>
 #include <string_view>
@@ -29,7 +29,7 @@ int main(void)
     auto mqtt_client = mst::mqtt::Client(
         BACKEND_MQTT_HOST, BACKEND_MQTT_PORT, "test", "1234");
 
-    auto server = mst::server2::Server();
+    auto server = mst::server::Server();
 
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         std::println("Skateboard sent: {}", text);
