@@ -144,6 +144,7 @@ Client::Client(const std::string& hostname,
     mosquitto_subscribe_callback_set(inst, callbacks::subscribe);
     mosquitto_unsubscribe_callback_set(inst, callbacks::unsubscribe);
 
+    std::println("[MQTT] Connecting to {}:{}", hostname, port);
     if (auto status = mosquitto_connect(inst, hostname.c_str(), port, 5);
         status != MOSQ_ERR_SUCCESS) {
         if (status == MOSQ_ERR_ERRNO) {
