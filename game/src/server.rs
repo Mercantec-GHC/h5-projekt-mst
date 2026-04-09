@@ -1,9 +1,7 @@
 use std::{
-    io::{self, BufReader, Read, Write},
+    io::{self, Read, Write},
     net::TcpStream,
     slice::{from_raw_parts, from_raw_parts_mut},
-    thread,
-    time::Duration,
 };
 
 #[repr(C)]
@@ -26,9 +24,9 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new() -> io::Result<Self> {
+    pub fn new(host: &str) -> io::Result<Self> {
         Ok(Self {
-            stream: TcpStream::connect("127.0.0.1:8889")?,
+            stream: TcpStream::connect(host)?,
         })
     }
 

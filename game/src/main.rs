@@ -388,7 +388,7 @@ impl ShapeGroup {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let t = thread::spawn(|| {
-        let mut server = Server::new().unwrap();
+        let mut server = Server::new("10.133.51.127:8888").unwrap();
         server
             .subscribe(|measurement| {
                 println!("angle = {}", measurement.angle);
