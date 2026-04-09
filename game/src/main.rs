@@ -4,6 +4,7 @@ mod engine;
 mod event_queue;
 pub mod vermiparous;
 
+use core::panic;
 use std::{
     collections::HashSet,
     f64::consts::PI,
@@ -12,7 +13,7 @@ use std::{
 };
 
 use crate::{
-    engine::{Color, Key, Renderer, Scene, Shape, V3},
+    engine::{Color, Key, Renderer, Scene, Shape, V2, V3},
     event_queue::EventQueue,
     vermiparous::Server,
 };
@@ -34,12 +35,6 @@ impl Skateboard {
     }
 
     fn render(&self, scene: &mut Scene) {
-        scene.draw_shape(
-            self.pos,
-            &Shape::new_cube(self.size),
-            Color::Green,
-            Color::Black,
-        );
         let board_size = V3(0.175, 0.005, 0.05);
         let trucks = {
             let anchor_size = V3(0.005, 0.01, 0.005);
@@ -151,6 +146,10 @@ impl Skateboard {
     }
 }
 
+struct UpdateCx<'game> {
+    skateboard: &'game mut Skateboard,
+}
+
 struct Game {
     skateboard: Skateboard,
     camera_pos: V3,
@@ -165,7 +164,7 @@ impl Game {
         Self {
             skateboard: Skateboard {
                 pos: V3(0.0, -0.15, -0.4),
-                size: V3(0.1, 0.05, 0.2),
+                size: V3(0.05, 0.02, 0.15),
                 vel: V3(0.0, 0.0, 0.2),
                 rot: V3(0.0, PI * 0.5, 0.0),
                 nyoom_factor: 0.0,
@@ -224,8 +223,21 @@ impl<R: Renderer> engine::Game<R> for Game {
             }
         }
 
-        for object in &mut self.objects {
-            object.update(delta_time);
+        let ids = self
+            .objects
+            .iter()
+            .enumerate()
+            .map(|(i, object)| (i, object.id))
+            .collect::<Vec<_>>();
+
+        let mut cx = UpdateCx {
+            skateboard: &mut self.skateboard,
+        };
+
+        for (i, id) in ids {
+            let object = &mut self.objects[i];
+
+            object.update(&mut cx, delta_time);
         }
     }
 
@@ -308,10 +320,27 @@ impl ShapeGroup {
 }
 
 impl Object {
-    fn update(&mut self, delta_time: Duration) {
+    fn update<'game>(&mut self, cx: &mut UpdateCx<'game>, delta_time: Duration) {
         match &mut self.kind {
-            ObjectKind::Obstacle { pos, vel, .. } => {
+            ObjectKind::Obstacle { pos, vel, size, .. } => {
                 *pos += *vel * delta_time.as_secs_f64();
+                let (skateboard_pos, skateboard_pos_and_size) = (
+                    V2(
+                        cx.skateboard.pos.0 - cx.skateboard.size.0 / 2.0,
+                        cx.skateboard.pos.2 - cx.skateboard.size.2 / 2.0,
+                    ),
+                    V2(
+                        cx.skateboard.pos.0 + cx.skateboard.size.0 / 2.0,
+                        cx.skateboard.pos.2 + cx.skateboard.size.2 / 2.0,
+                    ),
+                );
+                if skateboard_pos.0 < pos.0 + size.0
+                    && skateboard_pos_and_size.0 > pos.0
+                    && skateboard_pos.1 < pos.2 + size.2
+                    && skateboard_pos_and_size.1 > pos.2
+                {
+                    panic!("You lost 🫵 😂");
+                }
             }
             ObjectKind::Ground { .. } => {}
         }
