@@ -1,6 +1,7 @@
 services:
   backend:
     image: docker.io/sfja/h5-mst-backend:latest
+    pull_policy: always
     ports:
       - "8888:8888"
   mosquitto:
