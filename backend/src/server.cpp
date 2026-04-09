@@ -29,7 +29,7 @@ struct Measurement {
     double angle;
 };
 
-auto get_listener_socket() -> int
+auto get_listener_socket(const std::string& port) -> int
 {
     int listener; // Listening socket descriptor
     int status;
@@ -41,7 +41,7 @@ auto get_listener_socket() -> int
 
     struct addrinfo* addr;
 
-    if ((status = ::getaddrinfo(NULL, "8889", &hints, &addr)) != 0)
+    if ((status = ::getaddrinfo(NULL, port.c_str(), &hints, &addr)) != 0)
         throw Error(std::format("getaddrinfo ({})", ::gai_strerror(status)));
 
     struct addrinfo* p;
@@ -86,15 +86,16 @@ struct Server::State {
     std::vector<int> subscriber_fds;
 };
 
-Server::Server()
-    : m_state(std::make_unique<State>())
+Server::Server(uint16_t port)
+    : m_port(port)
+    , m_state(std::make_unique<State>())
 {
 }
 Server::~Server() = default;
 
 void Server::listen()
 {
-    m_listener_fd = get_listener_socket();
+    m_listener_fd = get_listener_socket(std::to_string(m_port));
     m_state->pollfds.push_back(::pollfd {
         .fd = m_listener_fd,
         .events = POLLIN,

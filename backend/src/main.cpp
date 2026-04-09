@@ -9,10 +9,8 @@
 #include <sys/types.h>
 #include <thread>
 
-#ifdef BACKEND_TCP_PORT
-#define PORT BACKEND_TCP_PORT
-#else
-#define PORT 8888
+#ifndef BACKEND_TCP_PORT
+#define BACKEND_TCP_PORT 8888
 #endif
 
 #ifndef BACKEND_MQTT_PORT
@@ -29,7 +27,7 @@ int main(void)
     auto mqtt_client = mst::mqtt::Client(
         BACKEND_MQTT_HOST, BACKEND_MQTT_PORT, "test", "1234");
 
-    auto server = mst::server::Server();
+    auto server = mst::server::Server(BACKEND_TCP_PORT);
 
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         std::println("Skateboard sent: {}", text);
