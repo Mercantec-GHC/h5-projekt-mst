@@ -6,7 +6,6 @@
 #include <iterator>
 #include <mutex>
 #include <netdb.h>
-#include <poll.h>
 #include <print>
 #include <sys/poll.h>
 #include <sys/socket.h>
