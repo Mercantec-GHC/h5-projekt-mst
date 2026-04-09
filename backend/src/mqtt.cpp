@@ -218,7 +218,7 @@ void Client::cb_publish()
 
 void Client::cb_message(std::string_view topic, const void* data, size_t size)
 {
-    std::println("[MQTT] Message received");
+    // std::println("[MQTT] Message received");
 
     auto text = std::string_view(static_cast<const char*>(data), size);
 

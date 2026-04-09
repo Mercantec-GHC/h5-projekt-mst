@@ -42,8 +42,8 @@ auto TcpListener::bind(const std::string& host, uint16_t port)
 
     struct sockaddr_in address = {
         .sin_family = AF_INET,
-        .sin_port = htons(port),
-        .sin_addr = in_addr { .s_addr = inet_addr(host.c_str()) },
+        .sin_port = ::htons(port),
+        .sin_addr = in_addr { .s_addr = ::inet_addr(host.c_str()) },
         .sin_zero = { },
     };
 

@@ -1,12 +1,9 @@
-#include "event_loop.hpp"
+#include "server2.hpp"
+// #include "event_loop.hpp"
 #include "json.hpp"
 #include "mqtt.hpp"
-#include "server.hpp"
-#include <chrono>
-#include <cstdio>
-#include <iostream>
+// #include "server.hpp"
 #include <print>
-#include <span>
 #include <stdexcept>
 #include <string_view>
 #include <sys/select.h>
@@ -36,23 +33,23 @@ int main(void)
 
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
         //
-        std::println("Skateboard: {}", text);
-        auto result = mst::json::parse(text);
-
-        if (!result) {
-            std::println(stderr,
-                "error: {} at {}",
-                result.error().message,
-                result.error().loc.idx);
-            return;
-        }
-        try {
-            auto parsed = std::move(result.value());
-            std::println(".rotation = {}",
-                parsed->query(".rotation").value()->get_f64());
-        } catch (std::runtime_error& ex) {
-            std::println(stderr, "exception: {}", ex.what());
-        }
+        // std::println("Skateboard: {}", text);
+        // auto result = mst::json::parse(text);
+        //
+        // if (!result) {
+        //     std::println(stderr,
+        //         "error: {} at {}",
+        //         result.error().message,
+        //         result.error().loc.idx);
+        //     return;
+        // }
+        // try {
+        //     auto parsed = std::move(result.value());
+        //     std::println(".rotation = {}",
+        //         parsed->query(".rotation").value()->get_f64());
+        // } catch (std::runtime_error& ex) {
+        //     std::println(stderr, "exception: {}", ex.what());
+        // }
     });
 
     auto mqtt_thread = std::thread([&]() {
@@ -64,16 +61,19 @@ int main(void)
         }
     });
 
-    auto mgr = mst::event::Manager::create().value();
-    auto x = mst::Server::bind(mgr, "0.0.0.0", PORT);
-    if (!x) {
-        std::println("{}", x.error());
-        return 1;
-    }
-    std::println("starting");
-    {
-        auto x = mgr.start();
-    }
+    // auto mgr = mst::event::Manager::create().value();
+    // auto x = mst::Server::bind(mgr, "0.0.0.0", PORT);
+    // if (!x) {
+    //     std::println("{}", x.error());
+    //     return 1;
+    // }
+    // std::println("starting");
+    // {
+    //     auto x = mgr.start();
+    // }
+
+    auto server = mst::server2::Server();
+    server.listen();
 
     mqtt_thread.join();
     return 0;
