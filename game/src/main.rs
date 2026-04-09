@@ -2,6 +2,7 @@
 
 mod engine;
 mod server;
+use rand::Rng;
 
 use core::panic;
 use std::{
@@ -154,7 +155,6 @@ struct Game {
     skateboard: Skateboard,
     segments: Vec<Segment>,
     camera_pos: V3,
-    next_object_id: u32,
     keys_pressed: HashSet<Key>,
 }
 
@@ -173,7 +173,6 @@ impl Game {
             },
             camera_pos: V3(0.0, 0.0, -1.0),
             segments: Vec::new(),
-            next_object_id: 0,
             keys_pressed: HashSet::new(),
         }
     }
@@ -186,7 +185,7 @@ impl Game {
         let index = self
             .segments
             .iter()
-            .position(|o| o.id == id)
+            .position(|s| s.id == id)
             .expect("doesn't exist");
         self.segments.remove(index);
     }
@@ -222,7 +221,22 @@ impl<R: Renderer> engine::Game<R> for Game {
             .segments
             .iter()
             .enumerate()
-            .map(|(i, object)| (i, object.id))
+            .map(|(i, segment)| (i, segment.id))
+            .rev()
+            .collect::<Vec<_>>();
+
+        for (i, id) in ids {
+            let segment = &self.segments[i];
+            if segment.should_despawn {
+                self.despawn(segment.id);
+            }
+        }
+
+        let ids = self
+            .segments
+            .iter()
+            .enumerate()
+            .map(|(i, segment)| (i, segment.id))
             .collect::<Vec<_>>();
 
         let mut cx = UpdateCx {
@@ -230,9 +244,8 @@ impl<R: Renderer> engine::Game<R> for Game {
         };
 
         for (i, id) in ids {
-            let object = &mut self.segments[i];
-
-            object.update(&mut cx, delta_time);
+            let segment = &mut self.segments[i];
+            segment.update(&mut cx, delta_time);
         }
     }
 
@@ -252,19 +265,21 @@ impl<R: Renderer> engine::Game<R> for Game {
         };
     }
 }
+#[derive(Clone, Copy)]
 
 struct Obstacle {
     pos: V3,
     vel: V3,
     size: V3,
 }
+#[derive(Clone, Copy)]
+
 struct Ground {
     pos: V3,
     rot: V3,
     grid_item_size: f64,
     grid_width: i32,
     grid_depth: i32,
-    render_depth: i32,
 }
 
 struct Segment {
@@ -306,11 +321,9 @@ impl Segment {
             }
         }
         if cx.skateboard.pos.2
-            >= cx.skateboard.start_pos.2
-                + self.ground.grid_depth as f64 * self.ground.grid_item_size as f64
+            >= self.ground.pos.2 + self.ground.grid_depth as f64 * self.ground.grid_item_size as f64
         {
-            cx.skateboard.pos.2 -=
-                self.ground.grid_depth as f64 * self.ground.grid_item_size as f64;
+            self.should_despawn = true
         }
     }
 
@@ -395,11 +408,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
             .unwrap();
     });
-    t.join().unwrap();
 
     let mut sdl_io = engine::SdlIo::new()?;
     let mut game = Game::new();
-    let segments: Vec<Segment> = vec![Segment::new(
+
+    let first_segment: Segment = Segment::new(
         0,
         vec![Obstacle {
             pos: V3(0.0, -0.248, 1.0),
@@ -412,9 +425,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             grid_item_size: 0.1,
             grid_width: 10,
             grid_depth: 20,
-            render_depth: 5,
         },
-    )];
+    );
+    let mut rng = rand::thread_rng();
+
+    let mut segments: Vec<Segment> = Vec::new();
+    for i in 0..5 {
+        let ground = first_segment.ground;
+        let obstacle = first_segment.obstacles[0];
+        segments.push(Segment::new(
+            first_segment.id + i,
+            vec![Obstacle {
+                pos: V3(
+                    obstacle.pos.0 + rng.gen_range(-0.5..0.5),
+                    obstacle.pos.1,
+                    obstacle.pos.2 + obstacle.pos.2 * i as f64,
+                ),
+                vel: obstacle.vel,
+                size: obstacle.size,
+            }],
+            Ground {
+                pos: V3(
+                    ground.pos.0,
+                    ground.pos.1,
+                    ground.pos.2
+                        + ground.grid_depth as f64
+                            * ground.grid_item_size
+                            * ground.pos.2.abs()
+                            * i as f64,
+                ),
+                rot: ground.rot,
+                grid_item_size: ground.grid_item_size,
+                grid_width: ground.grid_width,
+                grid_depth: ground.grid_depth,
+            },
+        ))
+    }
 
     for segment in segments {
         game.spawn(segment);
