@@ -19,6 +19,7 @@ use crate::{
 };
 
 struct Skateboard {
+    start_pos: V3,
     pos: V3,
     size: V3,
     vel: V3,
@@ -152,8 +153,8 @@ struct UpdateCx<'game> {
 
 struct Game {
     skateboard: Skateboard,
+    segments: Vec<Segment>,
     camera_pos: V3,
-    objects: Vec<Object>,
     next_object_id: u32,
     event_queue: Arc<Mutex<EventQueue>>,
     keys_pressed: HashSet<Key>,
@@ -161,9 +162,11 @@ struct Game {
 
 impl Game {
     fn new(event_queue: Arc<Mutex<EventQueue>>) -> Self {
+        let start_pos = V3(0.0, -0.15, -0.4);
         Self {
             skateboard: Skateboard {
-                pos: V3(0.0, -0.15, -0.4),
+                start_pos,
+                pos: start_pos,
                 size: V3(0.05, 0.02, 0.15),
                 vel: V3(0.0, 0.0, 0.2),
                 rot: V3(0.0, PI * 0.5, 0.0),
@@ -171,29 +174,24 @@ impl Game {
                 pivot_deg: 0.0,
             },
             camera_pos: V3(0.0, 0.0, -1.0),
-            objects: Vec::new(),
+            segments: Vec::new(),
             next_object_id: 0,
             event_queue,
             keys_pressed: HashSet::new(),
         }
     }
 
-    fn spawn(&mut self, object_kind: ObjectKind) {
-        let object = Object {
-            kind: object_kind,
-            id: self.next_object_id,
-        };
-        self.objects.push(object);
-        self.next_object_id += 1
+    fn spawn(&mut self, segment: Segment) {
+        self.segments.push(segment);
     }
 
-    fn despawn(&mut self, id: u32) {
+    fn despawn(&mut self, id: i32) {
         let index = self
-            .objects
+            .segments
             .iter()
             .position(|o| o.id == id)
             .expect("doesn't exist");
-        self.objects.remove(index);
+        self.segments.remove(index);
     }
 }
 
@@ -224,7 +222,7 @@ impl<R: Renderer> engine::Game<R> for Game {
         }
 
         let ids = self
-            .objects
+            .segments
             .iter()
             .enumerate()
             .map(|(i, object)| (i, object.id))
@@ -235,7 +233,7 @@ impl<R: Renderer> engine::Game<R> for Game {
         };
 
         for (i, id) in ids {
-            let object = &mut self.objects[i];
+            let object = &mut self.segments[i];
 
             object.update(&mut cx, delta_time);
         }
@@ -244,7 +242,7 @@ impl<R: Renderer> engine::Game<R> for Game {
     fn render(&mut self, r: &mut R) {
         let mut scene = Scene::new();
         self.skateboard.render(&mut scene);
-        for object in &self.objects {
+        for object in &self.segments {
             object.render(&mut scene);
         }
         scene.render(r, self.camera_pos);
@@ -258,24 +256,96 @@ impl<R: Renderer> engine::Game<R> for Game {
     }
 }
 
-struct Object {
-    kind: ObjectKind,
-    id: u32,
+struct Obstacle {
+    pos: V3,
+    vel: V3,
+    size: V3,
+}
+struct Ground {
+    pos: V3,
+    rot: V3,
+    grid_item_size: f64,
+    grid_width: i32,
+    grid_depth: i32,
+    render_depth: i32,
 }
 
-enum ObjectKind {
-    Obstacle {
-        pos: V3,
-        vel: V3,
-        size: V3,
-    },
-    Ground {
-        pos: V3,
-        rot: V3,
-        grid_item_size: f64,
-        grid_width: i32,
-        grid_depth: i32,
-    },
+struct Segment {
+    id: i32,
+    obstacles: Vec<Obstacle>,
+    ground: Ground,
+    should_despawn: bool,
+}
+
+impl Segment {
+    fn new(id: i32, obstacles: Vec<Obstacle>, ground: Ground) -> Self {
+        Self {
+            id,
+            obstacles,
+            ground,
+            should_despawn: false,
+        }
+    }
+
+    fn update<'game>(&mut self, cx: &mut UpdateCx<'game>, delta_time: Duration) {
+        for obstacle in &mut self.obstacles {
+            obstacle.pos += obstacle.vel * delta_time.as_secs_f64();
+            let (skateboard_pos, skateboard_pos_and_size) = (
+                V2(
+                    cx.skateboard.pos.0 - cx.skateboard.size.0 / 2.0,
+                    cx.skateboard.pos.2 - cx.skateboard.size.2 / 2.0,
+                ),
+                V2(
+                    cx.skateboard.pos.0 + cx.skateboard.size.0 / 2.0,
+                    cx.skateboard.pos.2 + cx.skateboard.size.2 / 2.0,
+                ),
+            );
+            if skateboard_pos.0 < obstacle.pos.0 + obstacle.size.0
+                && skateboard_pos_and_size.0 > obstacle.pos.0
+                && skateboard_pos.1 < obstacle.pos.2 + obstacle.size.2
+                && skateboard_pos_and_size.1 > obstacle.pos.2
+            {
+                panic!("You lost 🫵 😂");
+            }
+        }
+        if cx.skateboard.pos.2
+            >= cx.skateboard.start_pos.2
+                + self.ground.grid_depth as f64 * self.ground.grid_item_size as f64
+        {
+            cx.skateboard.pos.2 -=
+                self.ground.grid_depth as f64 * self.ground.grid_item_size as f64;
+        }
+    }
+
+    fn render(&self, scene: &mut Scene) {
+        for obstacle in &self.obstacles {
+            scene.draw_shape(
+                obstacle.pos,
+                &Shape::new_cube(obstacle.size),
+                Color::Red,
+                Color::Black,
+            );
+        }
+        let mut shapes = Vec::new();
+        for z in 0..self.ground.grid_depth {
+            for x in -self.ground.grid_width / 2..self.ground.grid_width / 2 {
+                shapes.push(ShapeGroupShape {
+                    shape: Shape::new_plane(V3(
+                        self.ground.grid_item_size,
+                        0.0,
+                        self.ground.grid_item_size,
+                    )),
+                    offset: V3(
+                        x as f64 * self.ground.grid_item_size,
+                        0.0,
+                        z as f64 * self.ground.grid_item_size,
+                    ),
+                });
+            }
+        }
+        let ground = ShapeGroup::new(shapes);
+        ground.draw(self.ground.pos, scene, Color::Cyan, Color::Black);
+    }
 }
 
 struct ShapeGroupShape {
@@ -319,61 +389,6 @@ impl ShapeGroup {
     }
 }
 
-impl Object {
-    fn update<'game>(&mut self, cx: &mut UpdateCx<'game>, delta_time: Duration) {
-        match &mut self.kind {
-            ObjectKind::Obstacle { pos, vel, size, .. } => {
-                *pos += *vel * delta_time.as_secs_f64();
-                let (skateboard_pos, skateboard_pos_and_size) = (
-                    V2(
-                        cx.skateboard.pos.0 - cx.skateboard.size.0 / 2.0,
-                        cx.skateboard.pos.2 - cx.skateboard.size.2 / 2.0,
-                    ),
-                    V2(
-                        cx.skateboard.pos.0 + cx.skateboard.size.0 / 2.0,
-                        cx.skateboard.pos.2 + cx.skateboard.size.2 / 2.0,
-                    ),
-                );
-                if skateboard_pos.0 < pos.0 + size.0
-                    && skateboard_pos_and_size.0 > pos.0
-                    && skateboard_pos.1 < pos.2 + size.2
-                    && skateboard_pos_and_size.1 > pos.2
-                {
-                    panic!("You lost 🫵 😂");
-                }
-            }
-            ObjectKind::Ground { .. } => {}
-        }
-    }
-
-    fn render(&self, scene: &mut Scene) {
-        match self.kind {
-            ObjectKind::Obstacle { pos, size, .. } => {
-                scene.draw_shape(pos, &Shape::new_cube(size), Color::Red, Color::Black);
-            }
-            ObjectKind::Ground {
-                pos,
-                grid_depth,
-                grid_item_size,
-                grid_width,
-                ..
-            } => {
-                let mut shapes = Vec::new();
-                for z in 0..grid_depth {
-                    for x in -grid_width / 2..grid_width / 2 {
-                        shapes.push(ShapeGroupShape {
-                            shape: Shape::new_plane(V3(grid_item_size, 0.0, grid_item_size)),
-                            offset: V3(x as f64 * grid_item_size, 0.0, z as f64 * grid_item_size),
-                        });
-                    }
-                }
-                let ground = ShapeGroup::new(shapes);
-                ground.draw(pos, scene, Color::Cyan, Color::Black);
-            }
-        }
-    }
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut sdl_io = engine::SdlIo::new()?;
     let event_queue = Arc::new(Mutex::new(EventQueue::new()));
@@ -382,23 +397,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let server = Server::bind("10.133.51.127:5000");
         server.start(event_queue);
     });
-    let objects: Vec<ObjectKind> = vec![
-        ObjectKind::Ground {
+    let segments: Vec<Segment> = vec![Segment::new(
+        0,
+        vec![Obstacle {
+            pos: V3(0.0, -0.248, 1.0),
+            vel: V3(0.0, 0.0, 0.0),
+            size: V3(0.1, 0.1, 0.1),
+        }],
+        Ground {
             pos: V3(0.0, -0.25, -0.4),
             rot: V3(0.0, 0.0, 0.0),
             grid_item_size: 0.1,
             grid_width: 10,
-            grid_depth: 40,
+            grid_depth: 20,
+            render_depth: 5,
         },
-        ObjectKind::Obstacle {
-            pos: V3(0.0, -0.248, 1.0),
-            vel: V3(0.0, 0.0, 0.0),
-            size: V3(0.1, 0.1, 0.1),
-        },
-    ];
+    )];
 
-    for object in objects {
-        game.spawn(object);
+    for segment in segments {
+        game.spawn(segment);
     }
 
     sdl_io.run(&mut game);
