@@ -4,7 +4,7 @@ MAKEFLAGS += -j16
 CXX=g++
 LD=g++
 
-CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion -Wcpp
+CXXFLAGS = -std=c++23 -pedantic-errors -Wall -Wextra -Wconversion -Werror
 LDFLAGS =
 
 libraries = libmosquitto
@@ -16,7 +16,7 @@ RELEASE = 0
 GDB = 0
 
 ifeq ($(RELEASE),1)
-	CXXFLAGS += -O3 -Werror
+	CXXFLAGS += -O3
 else
 	CXXFLAGS += -O0 -g -Wno-unused
 
