@@ -2,7 +2,7 @@ services:
   backend:
     image: docker.io/sfja/h5-mst-backend:latest
     ports:
-      - "42069:5000"
+      - "8888:8888"
   mosquitto:
     image: docker.io/eclipse-mosquitto
     ports:
