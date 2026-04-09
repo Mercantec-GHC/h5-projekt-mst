@@ -2,6 +2,7 @@
 
 mod engine;
 mod event_queue;
+mod server2;
 pub mod vermiparous;
 
 use core::panic;
@@ -9,12 +10,14 @@ use std::{
     collections::HashSet,
     f64::consts::PI,
     sync::{Arc, Mutex},
+    thread,
     time::Duration,
 };
 
 use crate::{
     engine::{Color, Key, Renderer, Scene, Shape, V2, V3},
     event_queue::EventQueue,
+    server2::Server2,
     vermiparous::Server,
 };
 
@@ -390,13 +393,19 @@ impl ShapeGroup {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let t = thread::spawn(|| {
+        let mut server = Server2::new().unwrap();
+        server
+            .subscribe(|measurement| {
+                println!("angle = {}", measurement.angle);
+            })
+            .unwrap();
+    });
+    t.join().unwrap();
+
     let mut sdl_io = engine::SdlIo::new()?;
     let event_queue = Arc::new(Mutex::new(EventQueue::new()));
     let mut game = Game::new(event_queue.clone());
-    std::thread::spawn(move || {
-        let server = Server::bind("10.133.51.127:5000");
-        server.start(event_queue);
-    });
     let segments: Vec<Segment> = vec![Segment::new(
         0,
         vec![Obstacle {

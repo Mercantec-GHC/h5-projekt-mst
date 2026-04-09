@@ -31,25 +31,17 @@ int main(void)
     auto mqtt_client = mst::mqtt::Client(
         BACKEND_MQTT_HOST, BACKEND_MQTT_PORT, "test", "1234");
 
+    auto server = mst::server2::Server();
+
     mqtt_client.subscribe("/skateboard/update", [&](std::string_view text) {
-        //
-        // std::println("Skateboard: {}", text);
-        // auto result = mst::json::parse(text);
-        //
-        // if (!result) {
-        //     std::println(stderr,
-        //         "error: {} at {}",
-        //         result.error().message,
-        //         result.error().loc.idx);
-        //     return;
-        // }
-        // try {
-        //     auto parsed = std::move(result.value());
-        //     std::println(".rotation = {}",
-        //         parsed->query(".rotation").value()->get_f64());
-        // } catch (std::runtime_error& ex) {
-        //     std::println(stderr, "exception: {}", ex.what());
-        // }
+        std::println("Skateboard sent: {}", text);
+        try {
+            auto parsed = *mst::json::parse(text);
+            auto angle = parsed->query(".rotation").value()->get_f64();
+            server.notify_subscribers(angle);
+        } catch (std::runtime_error& ex) {
+            std::println(stderr, "exception: {}", ex.what());
+        }
     });
 
     auto mqtt_thread = std::thread([&]() {
@@ -72,7 +64,6 @@ int main(void)
     //     auto x = mgr.start();
     // }
 
-    auto server = mst::server2::Server();
     server.listen();
 
     mqtt_thread.join();

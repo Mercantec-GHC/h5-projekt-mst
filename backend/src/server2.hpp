@@ -15,6 +15,7 @@ public:
     ~Server();
 
     void listen();
+    void notify_subscribers(double angle);
 
 private:
     struct State;
