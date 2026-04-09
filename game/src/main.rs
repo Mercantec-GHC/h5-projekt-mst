@@ -1,9 +1,7 @@
 #![allow(dead_code)]
 
 mod engine;
-mod event_queue;
 mod server2;
-pub mod vermiparous;
 
 use core::panic;
 use std::{
@@ -16,9 +14,7 @@ use std::{
 
 use crate::{
     engine::{Color, Key, Renderer, Scene, Shape, V2, V3},
-    event_queue::EventQueue,
     server2::Server2,
-    vermiparous::Server,
 };
 
 struct Skateboard {
@@ -159,12 +155,11 @@ struct Game {
     segments: Vec<Segment>,
     camera_pos: V3,
     next_object_id: u32,
-    event_queue: Arc<Mutex<EventQueue>>,
     keys_pressed: HashSet<Key>,
 }
 
 impl Game {
-    fn new(event_queue: Arc<Mutex<EventQueue>>) -> Self {
+    fn new() -> Self {
         let start_pos = V3(0.0, -0.15, -0.4);
         Self {
             skateboard: Skateboard {
@@ -179,7 +174,6 @@ impl Game {
             camera_pos: V3(0.0, 0.0, -1.0),
             segments: Vec::new(),
             next_object_id: 0,
-            event_queue,
             keys_pressed: HashSet::new(),
         }
     }
@@ -404,8 +398,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     t.join().unwrap();
 
     let mut sdl_io = engine::SdlIo::new()?;
-    let event_queue = Arc::new(Mutex::new(EventQueue::new()));
-    let mut game = Game::new(event_queue.clone());
+    let mut game = Game::new();
     let segments: Vec<Segment> = vec![Segment::new(
         0,
         vec![Obstacle {

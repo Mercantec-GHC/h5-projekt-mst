@@ -1,8 +1,6 @@
-#include "server2.hpp"
-// #include "event_loop.hpp"
 #include "json.hpp"
 #include "mqtt.hpp"
-// #include "server.hpp"
+#include "server2.hpp"
 #include <print>
 #include <stdexcept>
 #include <string_view>
@@ -52,17 +50,6 @@ int main(void)
             std::abort();
         }
     });
-
-    // auto mgr = mst::event::Manager::create().value();
-    // auto x = mst::Server::bind(mgr, "0.0.0.0", PORT);
-    // if (!x) {
-    //     std::println("{}", x.error());
-    //     return 1;
-    // }
-    // std::println("starting");
-    // {
-    //     auto x = mgr.start();
-    // }
 
     server.listen();
 
