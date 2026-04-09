@@ -25,7 +25,6 @@ int main(void)
 {
     std::println("Starting backend...");
 
-
     auto mqtt_client = mst::mqtt::Client(
         BACKEND_MQTT_HOST, BACKEND_MQTT_PORT, "test", "1234");
 
