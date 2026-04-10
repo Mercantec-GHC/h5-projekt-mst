@@ -6,7 +6,7 @@ use rand::Rng;
 
 use core::panic;
 use std::{
-    collections::{HashSet, VecDeque},
+    collections::{vec_deque, HashSet, VecDeque},
     f64::consts::PI,
     sync::{Arc, Mutex},
     thread,
@@ -17,6 +17,16 @@ use crate::{
     engine::{Color, Key, Renderer, Scene, Shape, V2, V3, WIDTH},
     server::Server,
 };
+
+struct SegmentFactory;
+
+trait SegmentKind {
+    fn obstacles(self) -> Vec<Obstacle>;
+}
+
+impl SegmentFactory {
+    fn new() {}
+}
 
 struct Skateboard {
     start_pos: V3,
@@ -34,7 +44,9 @@ impl Skateboard {
         self.vel.0 = self.pivot_deg * 2.0 * delta_time.as_secs_f64();
         self.pos += self.vel * delta_time.as_secs_f64();
         self.nyoom_factor += 16.0 * delta_time.as_secs_f64();
-        self.pos.0 = self.pos.0.clamp(-0.5 + 0.05, 0.5 - 0.05);
+        if self.pos.0 < -0.5 || self.pos.0 > 0.5 {
+            panic!("LLLLL");
+        }
     }
 
     fn render(&self, scene: &mut Scene) {
@@ -159,6 +171,48 @@ struct Game {
     camera_pos: V3,
     keys_pressed: HashSet<Key>,
     event_queue: Arc<Mutex<VecDeque<f64>>>,
+    ground: GroundMicroManager,
+}
+
+struct GroundMicroManager {
+    ground: VecDeque<Ground>,
+    start_position: V3,
+    grid_item_size: f64,
+    grid_width: i32,
+    grid_depth: i32,
+}
+
+impl GroundMicroManager {
+    pub fn new(start_position: V3, grid_item_size: f64, grid_width: i32, grid_depth: i32) -> Self {
+        let mut ground = VecDeque::new();
+        for i in 0..3 {
+            ground.push_back(Ground {
+                grid_width,
+                grid_depth,
+                grid_item_size,
+                position: start_position
+                    + V3(0.0, 0.0, grid_depth as f64 * grid_item_size * i as f64),
+            });
+        }
+        Self {
+            start_position,
+            grid_depth,
+            grid_width,
+            grid_item_size,
+            ground,
+        }
+    }
+
+    pub fn shuffle(&mut self) {
+        let mut first = self.ground.pop_front().unwrap();
+        let last = self.ground.back().unwrap();
+        first.position = last.position + V3(0.0, 0.0, self.grid_depth as f64 * self.grid_item_size);
+        self.ground.push_back(first);
+    }
+    pub fn should_shuffle(&self, z: f64) -> bool {
+        let first = self.ground.front().unwrap();
+        first.position.2 + self.grid_depth as f64 * self.grid_item_size > z
+    }
 }
 
 impl Game {
@@ -176,9 +230,10 @@ impl Game {
                 pivot_deg_target: 0.0,
             },
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
-            camera_pos: V3(0.0, 0.0, -0.6),
+            camera_pos: V3(0.0, 0.0, 0.0),
             segments: Vec::new(),
             keys_pressed: HashSet::new(),
+            ground: GroundMicroManager::new(V3(0.0, -0.25, -0.4), 0.1, 10, 20),
         }
     }
 
@@ -204,6 +259,9 @@ impl<R: Renderer> engine::Game<R> for Game {
             self.skateboard.pos.1 + 0.15,
             self.skateboard.pos.2 - 0.4,
         );
+        if self.ground.should_shuffle(self.skateboard.pos.2) {
+            self.ground.shuffle();
+        }
 
         // if self.keys_pressed.contains(&Key::Left) == self.keys_pressed.contains(&Key::Right) {
         //     let decay_rate = 1.0 - (4.0 * delta_time.as_secs_f64());
@@ -296,8 +354,7 @@ struct Obstacle {
 #[derive(Clone, Copy)]
 
 struct Ground {
-    pos: V3,
-    rot: V3,
+    position: V3,
     grid_item_size: f64,
     grid_width: i32,
     grid_depth: i32,
@@ -306,7 +363,6 @@ struct Ground {
 struct Segment {
     id: i32,
     obstacles: Vec<Obstacle>,
-    ground: Ground,
     should_despawn: bool,
 }
 
@@ -315,7 +371,6 @@ impl Segment {
         Self {
             id,
             obstacles,
-            ground,
             should_despawn: false,
         }
     }
@@ -340,11 +395,6 @@ impl Segment {
             {
                 panic!("You lost 🫵 😂");
             }
-        }
-        if cx.skateboard.pos.2
-            >= self.ground.pos.2 + self.ground.grid_depth as f64 * self.ground.grid_item_size as f64
-        {
-            self.should_despawn = true
         }
     }
 
@@ -442,13 +492,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             vel: V3(0.0, 0.0, 0.0),
             size: V3(0.1, 0.1, 0.1),
         }],
-        Ground {
-            pos: V3(0.0, -0.25, -0.4),
-            rot: V3(0.0, 0.0, 0.0),
-            grid_item_size: 0.1,
-            grid_width: 10,
-            grid_depth: 20,
-        },
     );
     let mut rng = rand::thread_rng();
 
@@ -467,21 +510,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 vel: obstacle.vel,
                 size: obstacle.size,
             }],
-            Ground {
-                pos: V3(
-                    ground.pos.0,
-                    ground.pos.1,
-                    ground.pos.2
-                        + ground.grid_depth as f64
-                            * ground.grid_item_size
-                            * ground.pos.2.abs()
-                            * i as f64,
-                ),
-                rot: ground.rot,
-                grid_item_size: ground.grid_item_size,
-                grid_width: ground.grid_width,
-                grid_depth: ground.grid_depth,
-            },
         ))
     }
 
