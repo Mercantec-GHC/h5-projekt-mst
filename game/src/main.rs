@@ -219,7 +219,7 @@ impl<R: Renderer> engine::Game<R> for Game {
             let mut angles = self.event_queue.lock().unwrap();
 
             for angle in angles.drain(..) {
-                self.skateboard.pivot_deg_target = angle / 2.0;
+                self.skateboard.pivot_deg_target = angle;
             }
         }
 
