@@ -6,7 +6,7 @@ use rand::Rng;
 
 use core::panic;
 use std::{
-    collections::HashSet,
+    collections::{HashSet, VecDeque},
     f64::consts::PI,
     sync::{Arc, Mutex},
     thread,
@@ -14,7 +14,7 @@ use std::{
 };
 
 use crate::{
-    engine::{Color, Key, Renderer, Scene, Shape, V2, V3},
+    engine::{Color, Key, Renderer, Scene, Shape, V2, V3, WIDTH},
     server::Server,
 };
 
@@ -26,11 +26,12 @@ struct Skateboard {
     rot: V3,
     nyoom_factor: f64,
     pivot_deg: f64,
+    pivot_deg_target: f64,
 }
 
 impl Skateboard {
     fn update(&mut self, delta_time: Duration) {
-        self.vel.0 = self.pivot_deg * delta_time.as_secs_f64();
+        self.vel.0 = self.pivot_deg * 2.0 * delta_time.as_secs_f64();
         self.pos += self.vel * delta_time.as_secs_f64();
         self.nyoom_factor += 16.0 * delta_time.as_secs_f64();
     }
@@ -156,11 +157,12 @@ struct Game {
     segments: Vec<Segment>,
     camera_pos: V3,
     keys_pressed: HashSet<Key>,
+    event_queue: Arc<Mutex<VecDeque<f64>>>,
 }
 
 impl Game {
     fn new() -> Self {
-        let start_pos = V3(0.0, -0.15, -0.4);
+        let start_pos = V3(0.0, -0.15, 0.0);
         Self {
             skateboard: Skateboard {
                 start_pos,
@@ -170,8 +172,10 @@ impl Game {
                 rot: V3(0.0, PI * 0.5, 0.0),
                 nyoom_factor: 0.0,
                 pivot_deg: 0.0,
+                pivot_deg_target: 0.0,
             },
-            camera_pos: V3(0.0, 0.0, -1.0),
+            event_queue: Arc::new(Mutex::new(VecDeque::new())),
+            camera_pos: V3(0.0, 0.0, -0.6),
             segments: Vec::new(),
             keys_pressed: HashSet::new(),
         }
@@ -200,22 +204,31 @@ impl<R: Renderer> engine::Game<R> for Game {
             self.skateboard.pos.2 - 0.4,
         );
 
-        if self.keys_pressed.contains(&Key::Left) == self.keys_pressed.contains(&Key::Right) {
-            let decay_rate = 1.0 - (4.0 * delta_time.as_secs_f64());
-            self.skateboard.pivot_deg *= decay_rate;
-        }
+        // if self.keys_pressed.contains(&Key::Left) == self.keys_pressed.contains(&Key::Right) {
+        //     let decay_rate = 1.0 - (4.0 * delta_time.as_secs_f64());
+        //     self.skateboard.pivot_deg *= decay_rate;
+        // }
         if self.keys_pressed.contains(&Key::Left) {
             self.skateboard.pivot_deg -= 36.0 * delta_time.as_secs_f64();
-            if self.skateboard.pivot_deg < -12.5 {
-                self.skateboard.pivot_deg = -12.5;
-            }
         }
         if self.keys_pressed.contains(&Key::Right) {
             self.skateboard.pivot_deg += 36.0 * delta_time.as_secs_f64();
-            if self.skateboard.pivot_deg > 12.5 {
-                self.skateboard.pivot_deg = 12.5;
+        }
+
+        {
+            let mut angles = self.event_queue.lock().unwrap();
+
+            for angle in angles.drain(..) {
+                self.skateboard.pivot_deg_target = angle / 2.0;
             }
         }
+
+        self.skateboard.vel.2 += 0.02 * delta_time.as_secs_f64();
+
+        self.skateboard.pivot_deg += (self.skateboard.pivot_deg_target - self.skateboard.pivot_deg)
+            * 4.0
+            * delta_time.as_secs_f64();
+        self.skateboard.pivot_deg = self.skateboard.pivot_deg.max(-12.5).min(12.5);
 
         let ids = self
             .segments
@@ -256,6 +269,13 @@ impl<R: Renderer> engine::Game<R> for Game {
             object.render(&mut scene);
         }
         scene.render(r, self.camera_pos);
+        let id = r.load_text(
+            &format!("{}", (self.skateboard.pos.2 * 100.0) as u32),
+            48.0,
+            Color::Green,
+        );
+        let V2(width, _height) = r.query_texture(id);
+        r.draw_texture(id, V2(WIDTH / 2.0 - width / 2.0, 50.0));
     }
 
     fn event(&mut self, event: engine::Event) {
@@ -400,17 +420,19 @@ impl ShapeGroup {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let t = thread::spawn(|| {
+    let mut sdl_io = engine::SdlIo::new()?;
+
+    let mut game = Game::new();
+    let event_queue = game.event_queue.clone();
+    let _ = thread::spawn(move || {
         let mut server = Server::new("10.133.51.127:8888").unwrap();
         server
             .subscribe(|measurement| {
+                event_queue.lock().unwrap().push_back(measurement.angle);
                 println!("angle = {}", measurement.angle);
             })
             .unwrap();
     });
-
-    let mut sdl_io = engine::SdlIo::new()?;
-    let mut game = Game::new();
 
     let first_segment: Segment = Segment::new(
         0,

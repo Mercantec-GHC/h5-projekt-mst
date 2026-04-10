@@ -11,6 +11,9 @@ pub trait Io<R: Renderer, G: Game<R>> {
 }
 
 pub trait Renderer {
+    fn load_text(&mut self, text: &str, size: f64, color: Color) -> u32;
+    fn draw_texture(&mut self, id: u32, pos: V2);
+    fn query_texture(&mut self, id: u32) -> V2;
     fn draw_rect(&mut self, pos: V2, size: V2, color: Color);
     fn draw_point(&mut self, pos: V2, color: Color);
     fn draw_line(&mut self, from: V2, to: V2, color: Color);

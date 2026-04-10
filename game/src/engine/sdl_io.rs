@@ -1,12 +1,16 @@
-use std::time::{Duration, Instant};
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 use sdl3::{
     event::Event,
     keyboard::Keycode,
     pixels::{Color as SdlColor, FColor, PixelFormat},
     rect::Point,
-    render::{Canvas, FPoint, FRect, Vertex, VertexIndices},
-    video::Window,
+    render::{Canvas, FPoint, FRect, Texture, TextureCreator, Vertex, VertexIndices},
+    ttf::{Font, Sdl3TtfContext},
+    video::{Window, WindowContext},
     Sdl, VideoSubsystem,
 };
 
@@ -20,16 +24,67 @@ use crate::engine::{
 pub static WIDTH: f64 = 1280.0;
 pub static HEIGHT: f64 = 720.0;
 
-pub struct SdlIo {
+pub struct SdlIo<'me> {
     sdl_context: Sdl,
     video_subsystem: VideoSubsystem,
+    ttf_context: Sdl3TtfContext,
     canvas: Canvas<Window>,
+    texture_handler: TextureHandler<'me>,
 }
 
-impl SdlIo {
+mod textures {
+    use std::collections::HashMap;
+
+    use sdl3::{
+        render::{Texture, TextureCreator},
+        ttf::Font,
+        video::WindowContext,
+    };
+
+    use crate::engine::Color;
+
+    pub struct TextureHandler<'me> {
+        texture_creator: TextureCreator<WindowContext>,
+        textures: HashMap<u32, Texture<'me>>,
+        id_counter: u32,
+    }
+
+    impl<'me> TextureHandler<'me> {
+        pub fn new(texture_creator: TextureCreator<WindowContext>) -> Self {
+            Self {
+                texture_creator,
+                textures: Default::default(),
+                id_counter: 0,
+            }
+        }
+        pub fn render_font(&mut self, font: Font, text: &str, color: Color) -> u32 {
+            let surface = font.render(text).blended(color).unwrap();
+            let texture = unsafe {
+                let static_texture_creator = &self.texture_creator as *const _;
+                let texture: Texture<'me> = surface.as_texture(&*static_texture_creator).unwrap();
+                texture
+            };
+            let id = self.id_counter;
+            self.textures.insert(id, texture);
+            self.id_counter += 1;
+            id
+        }
+        pub fn get(&self, id: u32) -> &Texture<'me> {
+            &self.textures[&id]
+        }
+        pub fn remove(&mut self, id: u32) {
+            self.textures.remove(&id);
+        }
+    }
+}
+
+use textures::*;
+
+impl SdlIo<'_> {
     pub fn new() -> Result<Self, Error> {
         let sdl_context = sdl3::init().unwrap();
         let video_subsystem = sdl_context.video().unwrap();
+        let ttf_context = sdl3::ttf::init().map_err(|e| e.to_string())?;
         let window = video_subsystem
             .window("Game", WIDTH as u32, HEIGHT as u32)
             .position_centered()
@@ -41,10 +96,14 @@ impl SdlIo {
         canvas.clear();
         canvas.present();
 
+        let texture_handler = TextureHandler::new(canvas.texture_creator());
+
         Ok(Self {
             sdl_context,
             video_subsystem,
+            ttf_context,
             canvas,
+            texture_handler,
         })
     }
 
@@ -119,7 +178,7 @@ impl SdlIo {
     }
 }
 
-impl Renderer for SdlIo {
+impl Renderer for SdlIo<'_> {
     fn draw_rect(&mut self, pos: V2, size: V2, color: Color) {
         let pos = self.point_w2s(pos);
         let size = self.scale_w2s(size);
@@ -180,6 +239,35 @@ impl Renderer for SdlIo {
         self.canvas
             .render_geometry(&vertices, None, VertexIndices::Sequential)
             .unwrap();
+    }
+
+    fn draw_texture(&mut self, id: u32, pos: V2) {
+        let texture = self.texture_handler.get(id);
+        let target = FRect::new(
+            pos.0 as f32,
+            pos.1 as f32,
+            texture.width() as f32,
+            texture.height() as f32,
+        );
+        self.canvas.copy(&texture, None, Some(target)).unwrap();
+        self.texture_handler.remove(id);
+    }
+
+    fn load_text(&mut self, text: &str, size: f64, color: Color) -> u32 {
+        let font = self
+            .ttf_context
+            .load_font(
+                "assets/BitcountGridDouble/BitcountGridDouble.ttf",
+                size as f32,
+            )
+            .unwrap();
+        let id = self.texture_handler.render_font(font, text, color);
+        id
+    }
+
+    fn query_texture(&mut self, id: u32) -> V2 {
+        let texture = self.texture_handler.get(id);
+        V2(texture.width() as f64, texture.height() as f64)
     }
 }
 
