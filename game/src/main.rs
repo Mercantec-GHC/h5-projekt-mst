@@ -34,6 +34,7 @@ impl Skateboard {
         self.vel.0 = self.pivot_deg * 2.0 * delta_time.as_secs_f64();
         self.pos += self.vel * delta_time.as_secs_f64();
         self.nyoom_factor += 16.0 * delta_time.as_secs_f64();
+        self.pos.0 = self.pos.0.clamp(-0.5 + 0.05, 0.5 - 0.05);
     }
 
     fn render(&self, scene: &mut Scene) {
@@ -228,7 +229,7 @@ impl<R: Renderer> engine::Game<R> for Game {
         self.skateboard.pivot_deg += (self.skateboard.pivot_deg_target - self.skateboard.pivot_deg)
             * 4.0
             * delta_time.as_secs_f64();
-        self.skateboard.pivot_deg = self.skateboard.pivot_deg.max(-12.5).min(12.5);
+        self.skateboard.pivot_deg = self.skateboard.pivot_deg.clamp(-12.5, 12.5);
 
         let ids = self
             .segments
