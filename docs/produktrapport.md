@@ -47,8 +47,8 @@ Vi vil gerne lave 3D-rendering til vores spil. Vi har valgt at implementere 3D-r
 
 3D-projektionen er implementeret med *Perspective Projection*[5] som funktioner på `V3` og `Triangle3` i methods ved navn `project_2d`. Følgende formel er anvendt:
 
-![3d math](./h5-mst-game-3d-math.jpg)
-![3d illustration](./h5-mst-game-3d-illustration.jpg)
+<img src="./h5-mst-game-3d-math.jpg" width="50%" height="50%">
+<img src="./h5-mst-game-3d-illustration.jpg" width="50%" height="50%">
 
 Pointen med formelen er at 2D-positionerne bestemmes via forskellen mellem skærmen og punktet på z-aksen i 3D. Dvs. jo længere væk et punkt er, dvs. jo større forskellen er på z-aksen, jo tættere på midten vil punktet ligge i 2D. Dvs. objekter tæt på skærmen vises som større og objekter, der ligger længere væk, vises som mindre. Det er dette, der giver effekten af 3D.
 
@@ -77,6 +77,8 @@ pub fn project_2d(&self, camera_pos: V3) -> Triangle2 {
 }
 ```
 Det væsentlige er her at se, at projektionen på trekantent bare er projektionen af alle punkter i trekanten.
+
+**Note:** Måden hvorpå vektorerne i disse beregninger vender, gør at vi arbejder med et venstrehåndskoordinatsystem, hvor Y peger opad. Dette betyder, at hvis du holder din venstre hånd op foran dig, peger tommelfingeren mod højre, pegefingeren op og langefingeren væk fra dig, så repræsenterer din tommelfinger, pegefinger og langefinger henholdsvis retningen af X-, Y- og Z-akserne i koordinatsystemet. Dette er vigtigt et stykke længere nede i rapporten.
 
 Ovenstående giver funktionalitet for at udrenge positionerne for enkelte trekanter fra 3D til 2D. For at rendere de scener, vi skal bruge i spil, vil vi gerne kunne rendere komplicerede figure der består af flere trekanter. Vi har valgt at implementere, så vi kan rendere kasser (boxes) og plader (planes). Figurene er defineret i `src/engine/shapes.rs`. Her er de defineret en liste af *vertices* (punkter), en liste af edges (2 vertex indices hvor punkterne udgør en edge, dvs. en kant) og en liste af faces (3 vertex indices hvor punkterne udgør en face, dvs. en overflade).
 
@@ -173,7 +175,7 @@ I skateboard-firmware'en har vi 4 hovedkomponenter (konceptuelt, ikke ESP-IDF-ko
 - **Wifi interface:** Skateboardet skal forbinde til vores Linux-server på netværket, for at kunne kommunikere med Mosquitto message broker'en over MQTT. Dette er et interface over ESP-IDF's WiFi driver, specialiseret til vores formål.
 - **MQTT interface:** Ligesom WiFi-interface'et er dette et interface over ESP-IDF's MQTT specialiseret til vores formål.
 - **MPU6050 driver:** Vi oplevede problemer med eksisterende MPU6050 drivers, så vi valgte at skrive vores egen. Driveren benytter ESP-IDF's I2C driver og kommunikerer med MPU'en efter beskrivelsen i manual'en.
-- **Måle og sende-timing:** Det er skateboardets ansvar at læse fra sensoren og sende dataen til serveren periodisk. Der er forskellige behov til de 2 processer. De er derfor implementeret med ESP-IDF's high precision timers og ESP-IDF's variant af FreeRTOS til preemptive multitasking.
+- **Måle og sende-timing:** Det er skateboardets ansvar at læse fra sensoren og sende dataen til serveren periodisk. Der er forskellige behov til de 2 processer. De er derfor implementeret med ESP-IDF's high resolution timers og ESP-IDF's variant af FreeRTOS til preemptive multitasking.
 
 #### WiFi interface
 
@@ -220,11 +222,99 @@ Grunden til at vi har lavet et interface over ESP-MQTT's driver er de samme som 
 
 Til måling af vinklen på skateboardet har vi valgt at bruge en MPU6050 kombineret gyroskop og accelerometer. Vi skal bruge en måde at måle vinklet på skateboardet elektronisk. Vi overvejede også andre muligheder. Eksempelvis kunne man måle vinklen med en aktuator med en mekanisme. Vi vurderede, at vi ville starte med at eksperimentere med et gyroskop/accelerometer.
 
-[16]: https://www.espressif.com/en/products/socs/esp32-s3/
-[17]: https://docs.arduino.cc/hardware/nano-esp32/
-[18]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/index.html
-[19]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/api-guides/build-system.html
-[20]: https://web.archive.org/web/20080212080618/http://wii.nintendo.com/controller.jsp
+Ved at undersøge projekter på internettet med Arduino eller ESP32 og accelerometre og gyroskoper, fandt vi frem til at MPU6050 var den mest populære. Vi valgte den hovedsageligt ud fra populariteten, da et mere populært komponent sandsynligvis har flere og bedre drivers og andet support.
+
+MPU6050'eren er forbundet til ESP32'eren via I2C. Modulet får også strøm fra ESP32-board'et. Pin-konfigurationen er at `VCC` og `GND` på MPU'en er forbundet til `3.3V` og `GND` på ESP32-board'et, og `SCA` og `SCL` er forbundet til henholdvis `A5` og `A4` på boardet.
+
+<img src="./circuit-diagram.png" width="50%" height="50%">
+<img src="./h5-mst-breadboard-2.jpg" width="50%" height="50%">
+
+General information om brug af MPU6050 kan findes i produktspecifikationen (databladet)[21]. MPU6050 kan køre på, og bliver forsynet med 3.3V. I2C-bussen skal have, og har, en clock rate på 400MHz. Opsætning af MPU'en gøres ved at skrive til I2C registers og læsning af målinger ved læsning af registers.
+
+Vi har valgt at lave vores egen driver til MPU6050. Vi eksperimenterede med 2 eksisterende drivers. Vi oplevede, at de havde outdatede dependencies og fejl i funktionaliteten. Ved at studere koden i de 2 drivers, vurderede vi, at det nemmeste ville være, at skrive vores egen ud fra manualen.
+
+Driveren er defineret i `main/mpu6050.h` og `main/mpu6050.c`. Her defineres typen `Mpu6050` samt adskillige typer og funktioner, til konfigurering og benyttelse af sensor-modulet. MPU6050's register map (programmeringsmanual) beskriver hvordan man via I2C kan konfigure og benytte modulet[22].
+
+Disse er de mest væsentlige funktioner i driveren:
+```c
+esp_err_t mpu6050_init(Mpu6050* dev);
+
+esp_err_t mpu6050_get_rotation(Mpu6050* dev, float3* rotation);
+esp_err_t mpu6050_get_acceleration(Mpu6050* dev, float3* accel);
+
+esp_err_t mpu6050_calibrate(Mpu6050* dev, const float3* initial_rotation);
+```
+
+Hvor WiFi- og MQTT-interfaces'ne er specialiserede interfaces der bygger ovenpå indbyggede drivers, så er dette komponent en generel MPU6050 driver (ikke komplet, men som design). Der er nogle forskelle i designvalgende på grund af dette. For det første er fejlhåndteringen anderledes. I interfaces'ne håndteres fejltilstande internt i interfaces'ne, tilfordel for et simpel interface ud til resten af applikationen. I denne driver bliver alle fejl *propagated* ud til driverens *consumer*. Hertil bruges den indbyggede `esp_err_t`-type per konvention.
+
+En anden forskel er, at de 2 interfaces har meget små interfaces, med målet om kun at tilbyde, hvad vores specifikke applikation har af behov. I driveren udstedes alle MPU6050'ens funktioner i interface'et. Vi har forsøgt at gøre driveren apolitisk, i den forstand, at den har fleksibilitet, så den kan bruges til at som de fysiske hardware er i stand til. Dette har vi valgt, da de kan gøre udviklingen af både driveren og af resten af applikation som skal bruge den nemmere.
+
+> Though it may be strange to say that a driver is "flexible," we like this word because it emphasizes that the role of a device driver is providing *mechanism*, not *policy*.
+>
+> ... Most programming problems can indeed be split into two parts: "what capabilities are to be provided" (the mechanism) and "how those capabilities can be used" (the policy). If the two issues are addressed by different parts of the program, ... the software package is much easier to develop and to adapt to particular needs.[23]
+
+For at bruge MPU6050'eren med driveren, bruger man de udstedte funktioner. `mpu6050_init()`-funktionen initialisere en MPU6050-device med en associeret struct-værdi, som indeholder diverse state, som driveren bruger internt. Før MPU-modulet kan bruges, skal det kalibreres. Dette gøres med `mpu6050_calibrate()`-funktionen[24].
+
+Efter modulet er kalibreret, kan man aflæse værdierne med `mpu6050_get_rotation()` og `mpu6050_get_acceleration()`. Disse funktioner returnere sensorens aflæste værdier korrigeret for kalibreringen. `mpu6050_get_acceleration()` returnerer en 3D-vektor, hvor hver af værdierne repræsenterer accelerationen, der påvirker MPU'en på henholdsvis X-, Y- og Z-akserne. `mpu6050_get_rotation()` returnerer en 3D-vektor, hvor hver af værdierne repræsenterer vinkel*accelerationen* om hver af akserne.
+
+**Note:** Husk hvordan spillets har et venstrehåndskoordinatsystem med Y som vertikalakse. MPU'en tilforskel repræsenterer sine målinger i et højrehåndskoordinatsystem, Z aksen peger opad. Det vil sige, at hvis du holder din *højre* hånd foran dig, peger tommelfingeren til højre, pegefingering væk fra dig og langefingeren opad, så repræsenterer din tommelfinger, pegefinger og langefinger henholdvis MPU'ens X-, Y- og Z-akse. Desuden er MPU'en vendt på hovedet på breadboardet. Vores system skal håndtere konverteringen mellem de to koordinatsystemer. Dette gøres i `main/skateboard.c`, når vi laver vinkelberegningen.
+
+Enheden for *g* for acceleration og *°/s* (grader per second) for rotation (vinkelacceleration). Sensorens måleopløsning kan indstilles med konfiguration. I vores applikation er opløsningen ±2g for acceleration og ±250°/s for rotation.
+
+Aflæsningen af enhederne skal foretages synkroniseret med MPU'ens sample rate. Denne sampling rate kan indstilles forskelligt med forskelligt konfiguration. ~~I vores applikation bruger vi en sampling rate på 25Hz. Dette betyder, at MPU'en foretager 25 målinger i sekundet. Vores firmware skal derfor læse sensor-dataen i intervaller med tidsmæssigt mellemrum på 40 millisekunder.~~ (Dette er ikke sandt. Dette er, hvad vi ville have gjort. I virkeligheden, så havde programmøren ikke tænkt på, at når DLPF ikke er sat, så er den 0, dvs. en sampling rate på 8 kHz på gyroskopet og 1kHz på accelerometeret. I øvrigt glemte programmøren at ændre sample rator divisor'en tilbage fra 3. Dvs. vores reelle sampling rate, udregning med sampling rate-ligningen fra manualen, er `8 kHz / (3 + 1) = 2 kHz` for gyroskopet og `1 kHz / (3 + 1) = 250 Hz` for accelerometeret. For at udlæse værdierne korrekt fra gyroskopet skal vi da vente `1 / 2 kHz = 500 µs` mellem læsninger og `1 / 250 Hz = 4 ms` mellem læsninger fra accelerometeret. Resten af firmware-koden venter de originale 40 millisekunder. Konsekvensen er her, at målingerne imellem vores læsninger går tabt. Den sidste måling siden sidste læsning (som er en acceleration) bliver istedet anvendt for hele perioden. Dette gør vores aflæste målinger mindre repræsentative for de faktiske accelerationer og rotationer på MPU'en. Dog gør det ikke en stor forskel, da den sidste måling i hver periode er en god approximering af den totale acceleration/rotation i perioden. Vi har ikke oplevet det som en fejl i vores system. Dette er den ene af to grunde til, at jeg lader det forblive sådan. Den anden er, at vi i skrivende stund har integreret og testet hele den del af systemet. Jeg vurderer, at risikoen i at forsøge at ændre dette, er en større pris end gevindsten.)
+
+#### Beregning og transmission af vinkel
+
+Formålet med firmware'en er at måle og udregne skateboardets vinkel, så det kan bruges til at styre spillet. Firmware'en skal derfor kunne måle en korrekt vinkel på skateboardet. Vinklen regner vi ud fra accelerationsmålingerne op MPU'en. Derfor er det første led i denne kæde, læsning af data fra MPU'en.
+
+MPU'en sampling rate er 25 Hz, dvs. vi kan aflæse nye værdier hvert 40. millisekund. Vi bruger ESP-IDF's high resolution timers til at lave et timer-loop, hvor en callback-funktion kaldes kontinuerligt hvert 40. millisekund. I hvert kald aflæses accelometerværdierne, og en vinkel beregnes herudfra.
+
+Vinkel regnes ud fra accelerometerdataen. Dette er muligt, da tyngdekraften påvirker accelerometeret, som derfor giver en måling på 1g i den retning, der peger nedad. Vi har valgt, at vinkel skal være vinkel af skateboardets rotation on X-aksen. Vi kan bruge følgende formel, til at regne retningen på tyngdekraft om til rotation om X-aksen:
+
+$ \theta = tan^-1 \left( \dfrac{ A_x }{\sqrt{A_y^2 + A_z^2}} \right) $
+
+Læsning af data og beregning af vinklen implementeret følgende:
+```c
+static float calculate_accel_axis_angle(
+    float axis, float tangent0, float tangent1)
+{
+    return atan(axis / sqrtf(tangent0 * tangent0 + tangent1 * tangent1))
+        * (1.0f / (M_PI / 180.0f));
+}
+
+static void mpu_timer_cb(void* arg)
+{
+    App* app = arg;
+
+    float3 accel = { 0 };
+    ESP_ERROR_CHECK(mpu6050_get_acceleration(&app->mpu, &accel));
+
+    app->rotation = calculate_accel_axis_angle(accel.x, accel.y, accel.z);
+}
+```
+
+Her ses det, at libc's `atan()`-function regner i radianer, hvor MPU'en og vores system bruger grader. Konvertering er derfor nødvendig.
+
+Den beregnede vinkel skal herefter sendes til serveren. Vores kommunikation med serveren, og derfor også med spillet, er begrænset af kommunikationslagene derimellem. Gennem eksperimentering har vi fundet ud af, at kommunikationen er bedst, når skateboardet sender 10 gange i sekundet. Vi har derfor et timer-setup, som afvikler publish-koden med 100 millisekunders mellemrum. Dette timer-setup bruger FreeRTOS's task scheduling timer (`vTaskDelay()`) til at pause task'en i 100 millisekunder.
+
+Vi bruger både FreeRTOS task scheduling[25] og ESP-IDF high resolution timers[26] forskellige steder i koden. Forskellen på de to i denne sammenhæng er primært at ESP-IDF high resolution timers er, som navnet siger, meget præcise med en opløsning i mikrosekunder. FreeRTOS's task scheduling funktioner har derimod en opløsning i 10'ere af millisekunder. Fordelen ved FreeRTOS funktionerne er at man har flere muligheder, for hvordan timing mekanismen skal virke, da man har adgang til preemptive multitasking-faciliteterne. 
+
+Publish-koden laver et JSON-objekt i en string med nuværende vinkelværdi. Koden til at laver JSON-string'et og publishing er følgende:
+```c
+static void publish_message(App* app)
+{
+    int msg_size = snprintf(
+        msg_buffer,
+        msg_buffer_capacity,
+        "{\"rotation\":% 9.4f}",
+        app->rotation);
+
+    app_mqtt_publish(&app->mqtt, "/skateboard/update", msg_buffer, msg_size);
+    ESP_LOGI(TAG, "%.*s", (int)msg_size, msg_buffer);
+}
+```
+
+Det ses, at en update-message eksempelvis kunne være `{"rotation":-49.321}`.
 
 ## Backend
 
@@ -331,8 +421,29 @@ ASSERT_EQ(f64_value, -0.0123);
 
 ## CI
 
-Til hver af de 3 kodeprojekter er der en CI opsætning, som udfører diverse verificeringer når kode bliver *push*'et. Opsætningen er lavet med Github actions. Til hver af de 3 projekter er der sat en pipeline op, som kloner koden, bygger koden og udfører andre verificeringer. Vi benytter et custom Docker images som byggemiljøer i CI-miljøet.
+Til hver af de 3 kodeprojekter er der en CI opsætning, som udfører diverse verificeringer når kode bliver *push*'et. Opsætningen er lavet med Github Action Workflows[27]. Til hver af de 3 projekter er der sat en pipeline op, som kloner koden, bygger koden og udfører andre verificeringer. Vi benytter et custom Docker images som byggemiljøer i CI-miljøet.
 
+Hver af de 3 pipelines er defineret i `.github/workflows/backend.yml`, `.github/workflows/game.yml` og `.github/workflows/skateboard.yml` henholdsvis. Disse pipelines er defineret som Github Actions. De bliver kørt, når kode *push*'es til hver af `backend/`-, `game/`- og `skateboard/`-mapperne. Dvs. backend'ens pipeline kører kun, når en commit ændre i filerne i `backend/`-mappen.
+
+Vi har valgt at adskille pipelines'ne, for at undgå ressourcespild, og for at undgå, at man bliver overvældet af irrelevant information, når man kigger på pipeline runs for ens commits. Hvis game's pipeline fejler, så ville det være at foretrække, at skateboardets pipeline ikke fejler, hvis man push'er korrekt kode i skateboard-mappen.
+
+Alle 3 pipelines bruger containers som runner-miljø. Skateboardet's pipeline bruger Espressif's eget image, med alle de nødvendige værktøjer `espressif/idf:release-v5.5`. Backend og game bruger custom images som byggemiljø. Images'ne er beskrevet i Docker-filer i `ci-images/`-mappen. Hver image indeholder de nødvendige pakker, for at køre pipelines for hver af projekterne henholdvis. Images'ne bygges og pushes til Docker Hub. Herfra kan Github hente images'ne og bruge dem i pipelines.
+
+Vi har valgt at bruge images for at minimere pipelines'nes køretid. Uden containers, ville pipelines'ne skulle hente alle packages hver gang. Vi oplevede, at det tog betydelig tid, at installere diverse nødvendige pakker. Med images kan pipelines'ne istedet hente et samlet komprimeret image med alle pakkerne. Dette har givet en stor forbedring.
+
+Skateboardets pipeline sørger for, at firmware'en kan bygge. Dette kan give en indikation, hvis en udvikler ved en fejl, push'er ukorrekt kode. Dette er en smoke test, dvs. den kan indikere en markant regression (koden ikke kan kompile), men den foretager ikke yderligere testing. Hvis min lærer læser dette, før jeg pointerer det, giver jeg en øl. Eksempelvis kan kode, som kompilere, stadig indeholde fejl, men denne test finder ikke sådanne fejl.
+
+Game's pipeline bygger, kører unittests og kører linting. Unittestene i koden er meget basale og tester kun en meget lille del af det samlede program, men det giver alligevel mere værdi, end bare at bygge koden. Ved at køre unittests bliver selve programkoden eksekveret. Med dette, kan man eksempelvis også fange fejl, såsom forkert opsatte runtime-afhængigheder. De dele af programmet subjekt til unittest, testes selvfølgelig i en grad afhængigt at grundigheden af test-suite'en. Linting tilføjer ekstra checks, som compileren ikke nødvendigvis fanger. Dette er ofte tilfælde, hvor koden giver mening for compileren, men ikke nødvendigvis giver mening for programmøren. Oftest er det tilfælde, hvor koden sansynligvis gøre noget andet, end det programmøren forventer. Derudover kan linting også foreslå generelle forbedringer af koden. Linting laver også diverse andre checks, såsom konformitet til konventioner som variabel-navne.
+
+Backend'ens pipeline bygger, kører unittests, ligesom game, men checker også formatteringen i koden. Dvs. hvis man push'er kode, hvor formatteringen, dvs. ikke-syntaktisk sammensætning i koden (mellemrum, linjeskift, m.m.), ikke er magen til det, som vores valgte toolchain ville gøre, så fejler pipeline'en. Dette tvinger udviklere til, at formatere koden efter de valgte konventioner specificeret i `backend/.clang-format`, eller bruge et program som clang-format til at gøre det automatisk.
+
+Vi har valgt at implementere disse continuous integration pipelines primært for at styrke kodekvaliteten. CI pipelines sænker tiden det tager, at integrer og teste et system. De kan derfor bruges til at minimere tiden det tager, at få feedback på koden.
+
+> Product teams can test ideas and iterate product designs faster with an optimized CI platform. Changes can be rapidly pushed and measured for success. Bugs or other issues can be quickly addressed and repaired.[28]
+
+## Konklusion
+
+For at opsummere: Vi har et Slope-agtigt spil med 3D-rendering som anvender diverse matematik og algoritmer til at rendere 3D. Vi har et skateboard, som består af et fysisk skateboard, hvorpå vi har installeret en ESP32-S3 microcontroller og MPU6050 gyroskop/accelerometer-modul til at måle og beregne skateboardets vinkel. Via en WiFi-forbindelse sender skateboardet data til backenden via MQTT. Backenden består af en Mosquitto message broker og en C++-serverapplikation. Serverapplikationen er selv en MQTT-klient, men udsteder også en server med en inhouse TCP-protokol. Spillet forbinder til backend'en, og modtager, gennem TCP-protokellen, sensordata, som spillet bruger som brugerinput.
 
 [1]: https://github.com/Mercantec-GHC/h5-projekt-mst
 [2]: https://wiki.libsdl.org/SDL3/FrontPage
@@ -349,4 +460,18 @@ Til hver af de 3 kodeprojekter er der en CI opsætning, som udfører diverse ver
 [13]: https://www.json.org/json-en.html
 [14]: https://github.com/nlohmann/json
 [15]: https://github.com/simdjson/simdjson
+[16]: https://www.espressif.com/en/products/socs/esp32-s3/
+[17]: https://docs.arduino.cc/hardware/nano-esp32/
+[18]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/index.html
+[19]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/api-guides/build-system.html
+[20]: https://web.archive.org/web/20080212080618/http://wii.nintendo.com/controller.jsp
+[21]: InvenSense Inc.: *MPU-6000 and MPU-6050 Product Specification*, Revision 3.4, 08/19/2013, https://product.tdk.com/system/files/dam/doc/product/sensor/mortion-inertial/imu/data_sheet/mpu-6000-datasheet1.pdf
+[22]: InvenSense Inc.: *MPU-6000 and MPU-6050 Register Map and Descriptions*, Revision 4.0, 3/09/2012, https://cdn.sparkfun.com/datasheets/Sensors/Accelerometers/RM-MPU-6000A.pdf
+[23]: Alessandro Rubini, Jonathan Corbet: *Linux Device Drivers*, 2nd Edition, O'REILLY 2001
+[24]: Denne funktion virkede ikke i en af de to eksisterende drivers vi eksperimenterede med. Uden kalibrering, kunne vi ikke bruge de udlæste værdier, men et kald til driverens kalibreringsfunktion producerede en fault-interrupt, som fik ESP32'eren til at genstarte sig selv. Fejlen lå i nogle af driverfunktionerne, som ikke virkede korrekt eller blev kaldt ukorrekt internt. Dette resulterede i en *division by zero*-fejl i kalibreringsfunktionen. Fun times!
+[25]: https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/freertos_idf.html
+[26]: https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/esp_timer.html
+[27]: https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows
+[28]: https://www.atlassian.com/continuous-delivery/continuous-integration
+
 
