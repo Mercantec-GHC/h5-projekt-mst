@@ -465,10 +465,15 @@ For at opsummere: Vi har et Slope-agtigt spil med 3D-rendering som anvender dive
 [18]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/index.html
 [19]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/api-guides/build-system.html
 [20]: https://web.archive.org/web/20080212080618/http://wii.nintendo.com/controller.jsp
+
 [21]: InvenSense Inc.: *MPU-6000 and MPU-6050 Product Specification*, Revision 3.4, 08/19/2013, https://product.tdk.com/system/files/dam/doc/product/sensor/mortion-inertial/imu/data_sheet/mpu-6000-datasheet1.pdf
+
 [22]: InvenSense Inc.: *MPU-6000 and MPU-6050 Register Map and Descriptions*, Revision 4.0, 3/09/2012, https://cdn.sparkfun.com/datasheets/Sensors/Accelerometers/RM-MPU-6000A.pdf
+
 [23]: Alessandro Rubini, Jonathan Corbet: *Linux Device Drivers*, 2nd Edition, O'REILLY 2001
+
 [24]: Denne funktion virkede ikke i en af de to eksisterende drivers vi eksperimenterede med. Uden kalibrering, kunne vi ikke bruge de udlæste værdier, men et kald til driverens kalibreringsfunktion producerede en fault-interrupt, som fik ESP32'eren til at genstarte sig selv. Fejlen lå i nogle af driverfunktionerne, som ikke virkede korrekt eller blev kaldt ukorrekt internt. Dette resulterede i en *division by zero*-fejl i kalibreringsfunktionen. Fun times!
+
 [25]: https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/freertos_idf.html
 [26]: https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/esp_timer.html
 [27]: https://docs.github.com/en/actions/concepts/workflows-and-actions/workflows
