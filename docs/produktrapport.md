@@ -13,6 +13,8 @@ Spillet er implementeret som en Desktop-applikation. Applikationen er skrevet i 
 
 Koden ligger i `game/` i repo'et.
 
+For at køre spillet, installer Rust, SDL3 og SDL3_ttf, og kør `cargo run`.
+
 ![entity relations diagram](./h5-mst-game-entity-relations.drawio.svg)
 
 ### Vindue, taster-input og 2D-rasterizering
@@ -137,6 +139,22 @@ if normal.dot(camera_pos - tri3.0) < 0.0 {
 }
 ```
 
+#### Rendering af scene
+
+Spillet består primært af en enkelt scene. Denne scene er bygget op med forskellige objekter. Disse objekter er defineret som structs, inkluderende `struct Skateboard`, `struct Segment`, `struct Obstacle`, `struct Ground`. Disse er alle sub-objekter på `struct Game`. I `game::Render`-metoden, renderes scenen ved at hvert objekt renderer sig selv i et `Scene`-objekt. For at renderer figure bestående af flere figure, bruges `struct ShapeGroup` struct'et. Dette er en samling a `Shape`-objekter som kan håndteres som en samlet enhed.
+
+Når en figur renderes (normalvis i en `render` metode), instantieres et `Shape` objekt. Objektet skaleres, roteres og flyttes til den ønskede destination i scenen. Dette gøres med 3D-vektormatematik. Både `ShapeGroup` og `Scene` giver muligheder for at rotere og flytte flere objekter som en enhed.
+
+#### Kommunikation med backenden
+
+Kommunikation med backend'en er enkapsuleret i `struct Server`-structet. Selvom den nok skulle have heddet `Backend`, så er den ansvarlig for at opsætte og vedligeholde forbindelsen til backenden. Kommunikationen benytter vores inhouse TCP-protokel. Pt. består den af et endpoint, som opretter en stream af sensor data.
+
+`Server`-struct'et har en metode `subscribe`, som kaldes med en callback-funktion. Denne metode registrer spillet i backend'en, sætter en datastream op, og kalder callback-funktionen for hvert sensor-measurement, der modtages fra backenden.
+
+I spilkoden bliver disse events samlet i en event queue. Event queue'en er en FIFO-buffer implementeret med Rusts `VecDec`-kontainer. Siden event queue'en skal virke over en thread boundary, er det nødvendigt med synkronisering. Dette gøres med Rust's `Arc<Mutex<T>>` type-pattern[7].
+
+I `Game::update`-metoden tjekkes event queue'en for, om der er blevet tilføjet nye events. Hvis der er, så tømmes queue'en, og hver værdi bruges til at styre skateboardet.
+
 ## Skateboard
 
 Skateboard'et er implementeret med en Arduino Nano ESP32, hvori der sidder en ESP32-S3 chip. Tilkoblet ESP32'eren er en MPU6050, som er et kombineret elektronisk accelerometer og gyroskop. ESP32'eren læser værdier fra MPU6050'eren via en inhouse driver, og sender dataen til backend'en over MQTT. Skateboardet finder via WiFi til backenden via en indbygget konfiguration. Firmware'en benytter timers, preemptive multitasking og andre features fra IDF's version af FreeRTOS, til at håndtere kommunikation med MPU'en og backenden i seperate processor med tidsmæssig decoupling.
@@ -145,9 +163,106 @@ Koden ligger i `skateboard/` i repo'et.
 
 ## Backend
 
-Backenden er en C++-applikation som hosted via Docker Compose på en Linux-server. Backend'ens formål er at forbinde skateboardet med spillet. Dette gøres over 2 protokoller. Skateboardet kommunikerer med backenden over MQTT. Dette gøres med Mosquitto som message broker, som også kører på Linux-serveren med Docker Compose. Spillet kommunikerer med backenden over en inhouse TCP protokol.
+Backend'en er en C++-applikation som hosted via Docker Compose på en Linux-server. Backend'ens formål er at forbinde skateboardet med spillet. Dette gøres over 2 protokoller. Skateboardet kommunikerer med backenden over MQTT. Dette gøres med Mosquitto som message broker, som også kører på Linux-serveren med Docker Compose. Spillet kommunikerer med backenden over en inhouse TCP protokol.
 
 Koden ligger i `backend/` i repo'et.
+
+Backend'en består konceptuelt af følgende komponenter: en Linux-server, en Mosquitto-instans, en C++-applikation, herunder en TCP-server, en MQTT-client, en JSON parser og et deployment miljø.
+
+For at deploy backend'en kør `./deploy.sh`. Eventuelt byg og upload et opdateret backend-image ved at køre `./publish.sh`.
+
+### Linux-server
+
+Vores backend-opsætning ligger på en server som kører Debian. Vi har lavet en opsætning med en bruger hver, dvs. en `mtk`-, `sfj`- og `tph`-bruger. Vi har sat SSH op på brugerne, så vi kan forbinde til hver vores bruger gennem SSH med public/private-nøgler. Password-authentificering er slået fra for SSH. På serveren har vi sat *sudo* op, så bruger kan køre sudo-kommandoer uden password.
+
+Vi har installeret Docker på serveren og Docker Compose. Vores deployment fungerer ved, at filerne synkroniseres op på serveren og `sudo docker compose up -d` køres. Vi har valgt at beholde, at man skal have root access til Docker, dels fordi det ikke gør stor forskel, dels fordi så er host-miljøet agnostics for, hvilken bruger der kørte up-kommandoen, og dels fordi, der er security issues ved at give alle adgang til Docker-systemet[10].
+
+### Mosquitto-instants
+
+Mosquitto[8] er sat op med Docker Compose via det officielle Docker image[9]. Instansen er konfigureret med filen `deploy/mosquitto.conf`, og authorisering er konfigureret i users-filen i `deploy/mqtt_users`. For nuværende er der en enkelt bruger `test` med password'et `1234`. Mosquitto-instansen lytter på port `1883` både internt og eksternt, og så tillader den anonyme brugere. Dette betyder, at authorisering ikke er nødvendigt. I vores setup benytter vi dog stadig username/password authorisering.
+
+Vi har valgt at bruge Mosquitto, da softwaren selv er relativ simpel. Efter at eksperimentere med RabbitMQ besluttede vi, at RabbitMQ var for advanceret til vores behov. Vi fandt ud af, at vi med meget lille energi kunne tilføje en Mosquitto-instans til vores Docker Compose-opsætning, som dækkede vores behov.
+
+Servicen er beskrevet følgende i `docker-compose.yml`-filen:
+```yaml
+mosquitto:
+image: docker.io/eclipse-mosquitto
+ports:
+  - "1883:1883"
+volumes:
+  - $PWD/mosquitto.conf:/mosquitto/config/mosquitto.conf
+  - $PWD/mqtt_users:/mosquitto/config/mqtt_users
+```
+
+### Server-applikation
+
+Server-applikationen er skrevet i C++, specifikt C++23, og benytter Make som buildsystem. Applikationen afhænger af libmosquitto til at forbinde til Mosquitto-instansen over MQTT. `src/`-mappen indeholder source-filerne, `tests/`-mappen indeholder unittests og `deploy/`-mappen indeholder diverse filer, som backend'en bruger til deployment-miljøet.
+
+Makefile'en definere diverse kommandoer til at verificere, bygge og teste backenden. For at bygge applikationen til release, kør `make RELEASE=1 build/backend`. For at køre tests, kør `make test`. For at køre bygge til debugging med GDB, kør `make GDB=1 all`.
+
+En Docker image er beskrevet i `Dockerfile`. Docker-filen beskriver 2 images, `builder` som er byggemiljøet og `runner` som er runtime-miljøet. I byggemiljøet installeret alle dependencies til at bygge og teste applikationen, eksempelvis `mosquitto-dev`, som inkluderer de headers, som C++-compileren skal bruge, for at compile kode, der bruger libmosquitto. Efter applikationen bygges, bliver testene kørt. I runtime-miljøet installeres kun de pakker, som applikationen behøver i runtime, eksempelvis `mosquitto-libs`, som kun består af libmosquitto's runtime-libraries.
+
+Til applikationen er der defineret en test-suite af unittests. Disse tests er standalone C++-applikationer, som inkluderer alt server-applikationskoden (udover `src/main.cpp`). Testene viser success/fail via. process return codes. Test-setup'et er "limet" sammen med følgende linjer i Make-filen:
+```make
+test_sources = $(shell find $(test_dir) -name '*.cpp')
+test_targets = $(test_sources:$(test_dir)/%.cpp=$(build_dir)/$(test_dir)/test_%)
+
+test: $(test_targets)
+	printf "%s\n" $^ | xargs -I % sh -c 'echo "- %..." && ./% && echo "- %: OK" || (echo "- %: FAILED" && exit 1)'
+
+$(build_dir)/$(test_dir)/test_%: $(obj_dir)/tests/%.o $(objects_without_main)
+	@mkdir -p $(dir $@)
+	$(LD) -o $@ $(CXXFLAGS) $^ $(LDFLAGS)
+```
+
+Projektet er sat op til udvikling med Clang-værktøjerne, specific clangd-sprogserveren[11]. clangd er sat op med `compile_flags.txt`, som er en primitiv måde at fortælle clangd, hvordan den skal fortolke koden. Filen beskriver de flag, som specificeres til compiler'en, når koden kompileres (og et flag `-xc++`, som fortæller at `.h`-filer er C++ og ikke C). Derudover er der en `.clang-format`-fil, som dikterer hvordan clangd og clang-format skal formatere koden. Her har vi eksempelvis sat indent-bredde til 4 (spaces) og kolonnemaksimum til 80:
+```yaml
+IndentWidth: 4
+ColumnLimit: 80
+```
+
+#### MQTT-klient
+
+Server-applikationen selv indeholder 2 primære komponenter. Den første af de to er MQTT-klienten. Dette komponent er enkapsuleret i `mst::mqtt::Client`-klassen, defineret i `src/mqtt.hpp` og `src/mqtt.cpp`. Implementationen bruger libmosquitto's C-API. Vi har valgt at bruge libmosquitto til implementering af klienten, da vi ønskede et simpelt library til håndtering af det tekniske i MQTT. Vi har valgt kun at bruge MQTT, dvs. fravælge AMQP, og at bruge Mosquitto som message broker. På grund af disse 2 grunde, valgte vi at bruge libmosquitto (Mosquitto's library og C-API). MQTT understøtter arbitrær data i beskederne, men vi har valgt, at alt kommmunikation over MQTT foregår med læselig text. Komponentet udsteder et interface, så man kan publish messages og subscribe på topics:
+```c++
+auto client = mst::mqtt::Client(/*...*/);
+
+client.subscribe("/my/topic", [&](std::string_view text) {
+    // ...
+});
+
+client.publish("/my/topic", "message to publish");
+```
+
+#### TCP-server
+
+Det andet komponent er en TCP-server. TCP-serveren understøtter vores inhouse protokol til at kommunikere data til spillet. TCP-serveren er enkapsuleret i `mst::server::Server`-klassen, defineret i `src/server.hpp` og `src/server.cpp`. Serveren bruger Linux's (POSIX's) indbyggede socket-API. Vi har valgt at bruge denne API, da vi har et lille behov for funktionalitet. Vi ønsker en simpel og barebones TCP-server, og derfor egner den relativt primitive socket TCP/IP-API sig godt. Derudover viste vi, at serveren kun skulle køre i et Linux-miljø. Før vi valgte socket-API'en og TCP-protokollen undersøgte vi libmicrohttp. Vi konkluderede, at en inhouse TCP protokol og socket-API'en ville være nemmest og simplest stil vores formål. Til implementeringen brugte vi *Beej's Guide to Network Programming* som reference[12].
+
+
+Serveren udstiller et interface som følgende:
+```c++
+auto server = mst::server::Server(/*...*/);
+
+server.notify_subscribers(/*...*/);
+
+server.listen();
+```
+
+`Server::listen()` starter TCP-serveren, ved at lave et socket med `socket()`, binde socket'en til en port med `bind()`, sætte socket'et til at lytte til connections med `listen()`. Socket'et sættes derefter i en file descriptor-liste, og programmet sættes derefter til at vente på events i file descriptor-listen med `poll()`. Når en ny klient forbinder, vågner serveren og opretter forbindelsen med `accept()`. Med en oprettet forbindelse kan serveren og klienten sende data frem og tilbage med `recv()` og `send()`.
+
+Pt. er der et enkelt endpoint i TCP-protokellen: `Subscribe`. Et subscribe-kald fortæller serveren, at den skal tilføje clienten til listen af klienter, der skal modtage data fra (pt. singulært) skateboardet. Klienter forventes derefter at receive data fra serveren. Med `Server::notify_subscribers()` kan backend'en sende vinkel-data til alle registrerede subscribers. Som nuværende, sker dette i MQTT subscription handleren til topic'et `/skateboard/update`. Dvs. når skateboardet publish'er data til `/skateboard/update` over MQTT, sendes det videre til alle subscribers. Serveren har funktionalitet til håndtering af afbrudte og fejlståede forbindelser.
+
+#### JSON-parser
+
+I backend-applikationen er der en inhouse JSON-parser. Vi valgte, at bruge vores egen JSON-parser, da vi havde brug for den ekstra performance, vi kunne få ud af en custom implementering. JSON-parseren er enkapsuleret i `mst::json::Value` og `mst::json::parse()`, og defineret i `src/json.hpp` og `src/json.cpp`. JSON-parseren er originalt et C-projekt, som vi har ported til C++23. Med en hurtig tokenizer, fleksibel parser, vel-defineret interface og simpelt query-funktionalitet, forsøger JSON-parseren at være både hurtig og nem at bruge. Vores JSON-parser er ikke 100% standards complient[13], men den opfylder vores behov. Alternativer til en inhouse implementation kunne være nlohmann/json[14] eller simdjson[15]. Et eksempel (taget fra en unittest) er følgende:
+```c++
+auto object = *json::parse(R"( { "rotation": -0.0123 } )");
+
+auto query_result = *object->query(".rotation");
+auto f64_value = query_result->get_f64();
+
+ASSERT_EQ(f64_value, -0.0123);
+```
 
 ## CI
 
@@ -160,4 +275,13 @@ Til hver af de 3 kodeprojekter er der en CI opsætning, som udfører diverse ver
 [4]: https://bevy.org/
 [5]: https://en.wikipedia.org/wiki/3D_projection#Mathematical_formula
 [6]: https://en.wikipedia.org/wiki/Z-buffering
+[7]: https://doc.rust-lang.org/book/ch16-03-shared-state.html#atomic-reference-counting-with-arct
+[8]: https://mosquitto.org/
+[9]: https://hub.docker.com/_/eclipse-mosquitto/
+[10]: https://docs.docker.com/engine/security/#docker-daemon-attack-surface
+[11]: https://clangd.llvm.org/
+[12]: https://beej.us/guide/bgnet/
+[13]: https://www.json.org/json-en.html
+[14]: https://github.com/nlohmann/json
+[15]: https://github.com/simdjson/simdjson
 
