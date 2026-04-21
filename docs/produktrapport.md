@@ -47,8 +47,8 @@ Vi vil gerne lave 3D-rendering til vores spil. Vi har valgt at implementere 3D-r
 
 3D-projektionen er implementeret med *Perspective Projection*[^5] som funktioner på `V3` og `Triangle3` i methods ved navn `project_2d`. Følgende formel er anvendt:
 
-<img src="./h5-mst-game-3d-math.jpg" width="50%" height="50%">
-<img src="./h5-mst-game-3d-illustration.jpg" width="50%" height="50%">
+<img src="./h5-mst-game-3d-math.jpg" width="49%" height="49%">
+<img src="./h5-mst-game-3d-illustration.jpg" width="49%" height="49%">
 
 Pointen med formelen er at 2D-positionerne bestemmes via forskellen mellem skærmen og punktet på z-aksen i 3D. Dvs. jo længere væk et punkt er, dvs. jo større forskellen er på z-aksen, jo tættere på midten vil punktet ligge i 2D. Dvs. objekter tæt på skærmen vises som større og objekter, der ligger længere væk, vises som mindre. Det er dette, der giver effekten af 3D.
 
@@ -226,8 +226,8 @@ Ved at undersøge projekter på internettet med Arduino eller ESP32 og accelerom
 
 MPU6050'eren er forbundet til ESP32'eren via I2C. Modulet får også strøm fra ESP32-board'et. Pin-konfigurationen er at `VCC` og `GND` på MPU'en er forbundet til `3.3V` og `GND` på ESP32-board'et, og `SCA` og `SCL` er forbundet til henholdvis `A5` og `A4` på boardet.
 
-<img src="./circuit-diagram.png" width="50%" height="50%">
-<img src="./h5-mst-breadboard-2.jpg" width="50%" height="50%">
+<img src="./circuit-diagram.png" width="49%" height="49%">
+<img src="./h5-mst-breadboard-2.jpg" width="49%" height="49%">
 
 General information om brug af MPU6050 kan findes i produktspecifikationen (databladet)[^21]. MPU6050 kan køre på, og bliver forsynet med 3.3V. I2C-bussen skal have, og har, en clock rate på 400MHz. Opsætning af MPU'en gøres ved at skrive til I2C registers og læsning af målinger ved læsning af registers.
 
