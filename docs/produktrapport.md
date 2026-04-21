@@ -271,7 +271,9 @@ MPU'en sampling rate er 25 Hz, dvs. vi kan aflæse nye værdier hvert 40. millis
 
 Vinkel regnes ud fra accelerometerdataen. Dette er muligt, da tyngdekraften påvirker accelerometeret, som derfor giver en måling på 1g i den retning, der peger nedad. Vi har valgt, at vinkel skal være vinkel af skateboardets rotation on X-aksen. Vi kan bruge følgende formel, til at regne retningen på tyngdekraft om til rotation om X-aksen:
 
-$$\theta = tan^-1 \left( \dfrac{ A_x }{\sqrt{A_y^2 + A_z^2}} \right)$$
+$$tan \left(\theta \right) = \dfrac{ A_{x} }{\sqrt{A_{y}^{2} + A_{z}^{2}}}$$
+
+$$\theta = tan^{-1} \left( \dfrac{ A_{x} }{\sqrt{A_{y}^{2} + A_{z}^{2}}} \right)$$
 
 Læsning af data og beregning af vinklen implementeret følgende:
 ```c
