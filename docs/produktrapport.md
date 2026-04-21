@@ -50,7 +50,7 @@ Vi vil gerne lave 3D-rendering til vores spil. Vi har valgt at implementere 3D-r
 ![3d math](./h5-mst-game-3d-math.jpg)
 ![3d illustration](./h5-mst-game-3d-illustration.jpg)
 
-Pointen med formelen er at 2D-positionerne bestemmes via forskellen mellem skærmen og punktet på z-aksen i 3D. Dvs. jo længere væk et punkt er, dvs. jo større forskellen er på z-aksen, jo tættere på midten vil punktet ligge i 2D. Dvs. objekter tæt på skærmen vises som større og objekter, der ligger længere væk, vises som minder. Det er dette, der giver effektion af 3D.
+Pointen med formelen er at 2D-positionerne bestemmes via forskellen mellem skærmen og punktet på z-aksen i 3D. Dvs. jo længere væk et punkt er, dvs. jo større forskellen er på z-aksen, jo tættere på midten vil punktet ligge i 2D. Dvs. objekter tæt på skærmen vises som større og objekter, der ligger længere væk, vises som mindre. Det er dette, der giver effekten af 3D.
 
 Udregninen er defineret på 3D-vektor-struct'et `V3`:
 
@@ -160,6 +160,71 @@ I `Game::update`-metoden tjekkes event queue'en for, om der er blevet tilføjet 
 Skateboard'et er implementeret med en Arduino Nano ESP32, hvori der sidder en ESP32-S3 chip. Tilkoblet ESP32'eren er en MPU6050, som er et kombineret elektronisk accelerometer og gyroskop. ESP32'eren læser værdier fra MPU6050'eren via en inhouse driver, og sender dataen til backend'en over MQTT. Skateboardet finder via WiFi til backenden via en indbygget konfiguration. Firmware'en benytter timers, preemptive multitasking og andre features fra IDF's version af FreeRTOS, til at håndtere kommunikation med MPU'en og backenden i seperate processor med tidsmæssig decoupling.
 
 Koden ligger i `skateboard/` i repo'et.
+
+Vi har valgt at bruge en ESP32, specifikt en ESP32-S3[16], produceret af Espressif, på et Arduino Nano ESP32 development board[17]. Vi ønskede en chip med den funktionalitet, vi skulle bruge, hovedsageligt en MHz CPU, WiFi, en I2C bus og nem udvikling. ESP32 med Espressif's development framework tilbyder features i en relativt kost-effektiv pakke. Alternativer til en ESP32 kunne være Atmel AVR, ARM Cortex eller STM32 chips. Med tidligere erfaring med alle tre alternativer, var valget også taget for læringsmæssige formål.
+
+Ikke at forveksle med de Israelske angrebsstyrker, ESP-IDF er Espressif's development framework (IoT Development Framework)[18]. ESP-IDF er et batteries included framework bestående af værktøjer, bootloaders, drivers og libraries til at udvikle firmwares til ESP32 chips. En ESP-IDF-applikationer er skrevet i C med CMake, med diverse libraries og CMake plugins.
+
+### Skateboard-firmware
+
+Til skateboardet har vi lavet et ESP-IDF projekt. Hertil hører der en `CMakeLists.txt`-fil, en `main`-mappe, en `main/CMakeLists.txt`-fil, en `Kconfig.projbuild`-fil og C- og H-filer i `main/`. Den første CMake-fil beskriver projektet og sætter aktiverer ESP-IDF's plugins. CMake-filen i `main/`-mappen beskriver, specifikt for main-komponentet, hvilke filer der skal kompileres og hvilke drivers (komponenter), som dette komponent afhænger af. `main/Kconfig.projbuild`-filen beskriver den konfiguration, som komponentet tilbyder. Konfigurationsmuligheder beskrevet her, vil dukke op i ESP-IDF's samlede konfigurationsmenu (`idf.py menuconfig`), og værdierne vil herefter være tilgængelige i C-koden. Mere om byggesystemet kan findes i manualen[19].
+
+I skateboard-firmware'en har vi 4 hovedkomponenter (konceptuelt, ikke ESP-IDF-komponenter):
+- **Wifi interface:** Skateboardet skal forbinde til vores Linux-server på netværket, for at kunne kommunikere med Mosquitto message broker'en over MQTT. Dette er et interface over ESP-IDF's WiFi driver, specialiseret til vores formål.
+- **MQTT interface:** Ligesom WiFi-interface'et er dette et interface over ESP-IDF's MQTT specialiseret til vores formål.
+- **MPU6050 driver:** Vi oplevede problemer med eksisterende MPU6050 drivers, så vi valgte at skrive vores egen. Driveren benytter ESP-IDF's I2C driver og kommunikerer med MPU'en efter beskrivelsen i manual'en.
+- **Måle og sende-timing:** Det er skateboardets ansvar at læse fra sensoren og sende dataen til serveren periodisk. Der er forskellige behov til de 2 processer. De er derfor implementeret med ESP-IDF's high precision timers og ESP-IDF's variant af FreeRTOS til preemptive multitasking.
+
+#### WiFi interface
+
+Vi har brug for WiFi til at forbinde til MQTT message brokeren på Linux-serveren. WiFi-funktionalitet er enkapsuleret i `AppWifi`-typen med associerede funktioner, defineret i `main/app_wifi.h` og  `main/app_wifi.c`. Pt. er dette interface'et til WiFi:
+```c
+void app_wifi_init(AppWifi* wifi);
+```
+
+Vi har valgt at skrive et interface, for at skille ESP-IDF specifik WiFi-kode fra resten af vores applikation. Vi opnår derved, at vores øvrige kode bruger en lille og præcist interface, mens implementeringsdetaljerne enkapsuleres bag interface'et. Alternativt til dette, kunne vi have valgt at flette ESP-IDF WiFi-koden sammen med resten. Ulemperne med sådanne abstrahering, er at vi skal skrive mere kode, og det er mindre gennemskueligt, at benytte ressourcerne effektivt. Fordelene derimod, er primært at den mentale load sænkes på i WiFi-koden og i den øvrige applikation. Enten tænker man på WiFi-implementeringsdetaljer, eller også tænker man på det simple interface og resten af applikationen. Det er ikke nødvendigt at holde begge i hovedet samtidig. Udover dette, opnår vi også en løs kobling mellem ESP-IDF WiFi-driveren og resten af applikationen. Dette gør, at det er nemt at skifte WiFi-driver, i tilfælde af, at vi vælger at bruge en anden driver.
+
+WiFi interface'et bruger ESP-IDF's WiFi-driver. Derudover bruges forskellige features fra ESP-IDF's variant af FreeRTOS. WiFi driver'en laver ikke selv fejlhåndtering i tidsmæssig forstand. Eksempelvis efter kan kalder `esp_wifi_start()`, så er det ens eget ansvar at tjekke efter løbende events såsom fejl og oprettede forbindelser. Dette gør vi med FreeRTOS's event handler og event group-funktionalitet. Her bruger vi event group-funktionerne som en ventemekanisme sammenligneligt med en condition variable.
+
+Konfigurationen af WiFi, dvs. SSID og password er konfigureret igennem Kconfig-menu'en. Dvs. man i configure time (før compile time) indtaster sit ønskede netværks-credentials. Dette er en midlertidig foranstaltning. I en videreudviklet version, bør man kunne konfigurere netværket i run time, eksempelvis via en mobilapp.
+
+Et alternativ til at skulle konfigurere WiFi kunne være, at produktet salges sammen med et access point. I sådanne setup ville man også kunne bruge Bluetooth, som eksempelvis Wii Remote benytter[20]. Alternativt kunne man forbinde produktet direkte til computeren, hvor spillet køre. Vi valgte, at bruge WiFi i denne konfiguration, da vi vurderede, at det ville gøre udvikling simplest, og tillade at vi hurtigere kunne udvikle spillet.
+
+#### MQTT interface
+
+MQTT interface'et er enkapsuleret i `AppMqtt`-typen med associerede funktioner, defineret i `main/app_mqtt.h` og `main/app_mqtt.c`. Interface-funktionerne er defineret følgende:
+```c
+void app_mqtt_init(AppMqtt* mqtt);
+void app_mqtt_subscribe(AppMqtt* mqtt, const char* topic, AppMqttSubCb callback, void* arg);
+void app_mqtt_publish(AppMqtt* mqtt, const char* topic, const void* data, size_t size);
+```
+
+Disse funktioner udsteder præcist det interface, vi skal bruge i applikationen. Dvs. funktionalitet til at subscribe på `/skateboard/config` og publish på `/skateboard/update`. Vi bruger igen FreeRTOS's event system til at håndtere MQTT events. Vi opretholder et liste af subscriptions, som er dem interface'et lytter efter. Når man tilføjer en subscription, giver man en callback-funktion, som kaldes, når data modtages.
+
+```c
+static void configure_cb(
+    const char* topic,
+    size_t topic_size,
+    const void* data,
+    size_t data_size,
+    void* arg);
+
+app_mqtt_subscribe(&mqtt_client, "/skateboard/configure", configure_cb, /*...*/);
+
+app_mqtt_publish(&mqtt_client, "/skateboard/update", msg_buffer, msg_size);
+```
+
+Grunden til at vi har lavet et interface over ESP-MQTT's driver er de samme som for WiFi interface'et.
+
+#### MPU6050
+
+Til måling af vinklen på skateboardet har vi valgt at bruge en MPU6050 kombineret gyroskop og accelerometer. Vi skal bruge en måde at måle vinklet på skateboardet elektronisk. Vi overvejede også andre muligheder. Eksempelvis kunne man måle vinklen med en aktuator med en mekanisme. Vi vurderede, at vi ville starte med at eksperimentere med et gyroskop/accelerometer.
+
+[16]: https://www.espressif.com/en/products/socs/esp32-s3/
+[17]: https://docs.arduino.cc/hardware/nano-esp32/
+[18]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/index.html
+[19]: https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/api-guides/build-system.html
+[20]: https://web.archive.org/web/20080212080618/http://wii.nintendo.com/controller.jsp
 
 ## Backend
 
