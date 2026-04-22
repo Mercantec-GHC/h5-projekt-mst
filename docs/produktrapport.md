@@ -1,17 +1,17 @@
 
 # Skateboard-slope - Produktrapport
 
-*Mikkel Kongsted, Theis Pieter Hollebeek, S. Jakobsen &lt;sfja2004@gmail.com&gt; - 27.4.2026*
+*Mikkel Kongsted &lt;mtkongsted@gmail.com&gt;, Theis Pieter Hollebeek &lt;tphollebeek@gmail.com&gt;, S. Jakobsen &lt;sfja2004@gmail.com&gt; - 27.4.2026*
 
-**Skateboard-slope er et singler-player-spil, hvor spilleren styrer et objekt ned af en bane og undgår forhendringer på vejen. Spillet styres af en fysisk skateboard-device.**
+**Skateboard-slope er et single-player-spil, hvor spilleren styrer et objekt ned af en bane og undgår forhindringer på vejen. Spillet styres af en fysisk skateboard-device.**
 
-Løsningen består af 1) et spil implementeret som en Desktop-applikation, 2) en Skateboard-device implementeret som en embedded device men en ESP32-S3 og en MPU6050 kombineret accelerometer og gyroskop, 3) en backend-server som understøtter kommunikation over MQTT og over vores in-house TCP-protokol, og 4) en CI-opsætningen med pipelines for hvert kodeprojekt.
+Løsningen består af 1) et spil implementeret som en Desktop-applikation, 2) en Skateboard-device implementeret som en embedded device med en ESP32-S3 og en MPU6050 kombineret accelerometer og gyroskop, 3) en backend-server som understøtter kommunikation over MQTT og over vores in-house TCP-protokol, og 4) en CI-opsætningen med pipelines for hvert kodeprojekt.
 
 Koden samt yderligere materialer ligger i Github repo'et[^1].
 
 ## Spillet
 
-Spillet er implementeret som en Desktop-applikation. Applikationen er skrevet i Rust som et Cargo-projekt. Spillets brugerflade er grafisk og bruger 3D-rendering. Applikationen bruger SDL3 til 2D-rasterizering og operativsystem-IO og inhouse 3D-projektion til at rendere 3D.
+Spillet er implementeret som en Desktop-applikation. Applikationen er skrevet i Rust som et Cargo-projekt. Spillets brugerflade er grafisk og bruger 3D-rendering. Applikationen bruger SDL3 til 2D-rasterizering og operativsystem-IO og in-house 3D-projektion til at rendere 3D.
 
 Koden ligger i `game/` i repo'et.
 
@@ -24,9 +24,9 @@ For at køre spillet, installer Rust, SDL3 og SDL3_ttf, og kør `cargo run`.
 
 Vi har valgt at skrive spillet i Rust. Dette har vi valgt, fordi vi alle har tidligere erfaring med at lave spil i Rust som Desktop-applikationer med SDL (SDL2). Vi har oplevet Rust som godt til Desktop-applikationer med kompleksitet og performance-krav. Diskuterede alternativer er C++ og Typescript. Siden vi ikke har lige så meget erfaring med C++ som gruppe blev dette valgt fra. Vi vurderede, at Typescript ikke passede godt til vores behov. Dele af vores applikation ligger tæt på operativsystemet i abstraktion, og vi har mindre erfaring med at udvikle med sådanne behov i Typescript end i Rust.
 
-Spillet er en grafisk applikation, som skal kunne renderer til skærmen og reagere på input fra spilleren. Til at implementere denne funktionalitet har vi valgt at bruge library'et SDL3 (Simple Direct Medialayer)[^2]. Specifikt benytter vi Rust-*crate*'en *sdl3*, som udsteder SDL3's API i et Rust-agtigt interface.[^3] SDL3 er den relativt nye version af library'et, hvor SDL2 er stadig mere populært.
+Spillet er en grafisk applikation, som skal kunne rendere til skærmen og reagere på input fra spilleren. Til at implementere denne funktionalitet har vi valgt at bruge library'et SDL3 (Simple Direct Medialayer)[^2]. Specifikt benytter vi Rust-*crate*'en *sdl3*, som udsteder SDL3's API i et Rust-agtigt interface.[^3] SDL3 er den relativt nye version af library'et, hvor SDL2 er stadig mere populært.
 
-Vi har valgt at bruge SDL3 af flere grunde. Den første grund er, at vi har arbejdet med SDL før. Dette gjorde det nemt for os, at lave en opsætning vi kunne bruge. Vi ville derved hurtigt finde ud af, om det passede til vores behov, vi skulle skifte til noget andet. Vi konkluderede, at det passede til vores behov.
+Vi har valgt at bruge SDL3 af flere grunde. Den første grund er, at vi har arbejdet med SDL før. Dette gjorde det nemt for os, at lave en opsætning vi kunne bruge. Vi ville derved hurtigt finde ud af, om det passede til vores behov, eller om vi skulle skifte til noget andet. Vi konkluderede, at det passede til vores behov.
 
 Den anden grund er, at SDL's designprincipper passer godt ind i vores problemstilling. Vi vil gerne lave en cross-platform applikation samtidig med at implementere store dele af det grafiske selv. SDL tilbyder en letvægts platformagnostisk API, som gør det nemt at lave simpel og effektiv 2D rendering og nemt at opsamle og håndtere tastatur-input. Samtidig er der lille kompleksitet bygget ind i SDL. Istedet er designprincippet at udstede primitive API'er, så det er nemt for library'ets brugere at implementere det nødvendige funktionalitet.
 
@@ -34,17 +34,17 @@ Alternativer til SDL3 er først og fremmest SDL2. Vi valgte, at bruge den nye ve
 
 Vi har 2 behov, som SDL3 skal udfylde. Det første er IO-håndtering. Dvs. oprettelse af et Desktop-vindue og håndtering af applikations-events. Det andet er rendering (rasterizering) af 2D-geometri. Dvs. en måde at tegne 2D-trekanter i farver på skærmen.
 
-Funktionalitet til 2D-renderingen er beskrevet som et Rust trait (interface) `trait Renderer` i `src/engine/game.rs`. Dette trait definerer de funktioner, vi skal bruge til at tegne geometri, hovedsageligt `fn draw_triangles`. Dette trait er implementeret for objektet (Rust struct) `struct SdlIo`, defineret i `src/game/sdl_io.rs`. Dette struct indeholder alt SDL-specifik kode. Trait'et er implementeret, så at de positioner og størrelser man passer i `Renderer`'s funktioner er normaliserede i et koordinatsystem. `SdlIo` implementation oversætter disse positioner og størrelser til reelle skærm-værdier.
+Funktionalitet til 2D-renderingen er beskrevet som et Rust trait (interface) `trait Renderer` i `src/engine/game.rs`. Dette trait definerer de funktioner, vi skal bruge til at tegne geometri, hovedsageligt `fn draw_triangles`. Dette trait er implementeret for objektet (Rust struct) `struct SdlIo`, defineret i `src/game/sdl_io.rs`. Dette struct indeholder alt SDL-specifik kode. Trait'et er implementeret, så at de positioner og størrelser man pass'er i `Renderer`'s funktioner er normaliserede i et koordinatsystem. `SdlIo`-implementationen oversætter disse positioner og størrelser til reelle skærmværdier.
 
 <img src="./position-translation.png" width="50%" height="50%">
 
-Funktionalitet til vindue- og event-håndtering er også enkapsuleret i `struct SdlIo`. Interface'et mellem `SdlIo` og spillet er defineret i `trait engine::Game` trait'et. Dette trait definerer funktioner, som defineret af spillet og kaldet af `SdlIo`. Dette består af `fn update`, `fn render` og `fn event` funktionerne.
+Funktionalitet til vindue- og event-håndtering er også enkapsuleret i `struct SdlIo`. Interface'et mellem `SdlIo` og spillet er defineret i `trait engine::Game` trait'et. Dette trait deklarerer funktioner, som er defineret af spillet og kaldet af `SdlIo`. Dette består af `fn update`, `fn render` og `fn event` funktionerne.
 
 Vi har så vidt muligt forsøgt at enkapsulere SDL3-afhængigheden bag library-agnostiske interfaces. Dette gør at SDL3-specifik kode er begrænset til `SdlIo`. Dette gør også, at vi har et præcist interface, som beskriver vores behov. Dog introducerer det en smule kompleksitet i Rust, når man gemmer implementeringsdetaljer bag interfaces, hvis man forsøger at undgå at introducere overhead samtidig. Eksempelvis er sammenkoblingen defineret med generics og lifetimes, som kræver at man holder tungen lige i munden, når man definerer interfacet og implementerer begge sider.
 
 ### 3D-rendering
 
-Vi vil gerne lave 3D-rendering til vores spil. Vi har valgt at implementere 3D-rendering inhouse. Grunden til dette er hovedsageligt, at vi tænkte, det ikke ville være sværre at lave selv, end at hente et library. I begge tilfælde skulle vi sætte os ind i kompleksiteterne ved 3D-rendering. 3D-renderingskoden ligger primært i `src/engine/scene.rs` og `src/engine/math.rs`.
+Vi vil gerne lave 3D-rendering til vores spil. Vi har valgt at implementere 3D-rendering in-house. Grunden til dette er hovedsageligt, at vi tænkte, det ikke ville være sværre at lave selv, end at hente et library. I begge tilfælde skulle vi sætte os ind i kompleksiteterne ved 3D-rendering. 3D-renderingskoden ligger primært i `src/engine/scene.rs` og `src/engine/math.rs`.
 
 3D-rendering, eller retter 3D-projektering er primært et matematisk problem. Vi har defineret nogle matematiske primitiver, og defineret diverse operationer, som er nødvendige for 3D-projektioner. Disse ligger i `src/engine/math.rs`. Dette inkluderer 2D-vektor `V2`, 3D-vektor `V3`, 2D- og 3D-trekanter `Triangle2` og `Triangle3` og 3x3 matrice `M3x3`. På de forskellige primitiver har vi defineret diverse matematiske operationer såsom sammenlægning og fratrækning af 3D-vektorer, gange med skalarværdi, længde af vektor, prik- og krydsprodukt, distance mellem 2 vektorer, osv. Nogle operationer er defineret som method-funktioner, eksempelvis `V3::cross`. Andre er implementeret med indbyggede Rust operatorer såsom `std::ops::Add` og `std::ops::Mul<f64>` for `V3`. Alle skalarværdier er repræsenteret med IEEE 754 double-floating point-tal, som i Rust staves `f64`, for 64-bit float.
 
@@ -53,7 +53,7 @@ Vi vil gerne lave 3D-rendering til vores spil. Vi har valgt at implementere 3D-r
 <img src="./h5-mst-game-3d-math.jpg" width="50%" height="50%">
 <img src="./h5-mst-game-3d-illustration.jpg" width="50%" height="50%">
 
-Pointen med formelen er at 2D-positionerne bestemmes via forskellen mellem skærmen og punktet på z-aksen i 3D. Dvs. jo længere væk et punkt er, dvs. jo større forskellen er på z-aksen, jo tættere på midten vil punktet ligge i 2D. Dvs. objekter tæt på skærmen vises som større og objekter, der ligger længere væk, vises som mindre. Det er dette, der giver effekten af 3D.
+Pointen med formelen er at 2D-positionerne bestemmes via forskellen mellem skærmen og punktet på z-aksen i 3D. Dvs. jo længere væk et punkt er, jo større er forskellen på z-aksen, dvs. jo tættere på midten vil punktet ligge i 2D. Dvs. objekter tæt på skærmen vises som større og objekter, der ligger længere væk, vises som mindre. Det er dette, der giver effekten af 3D.
 
 Udregninen er defineret på 3D-vektor-struct'et `V3`:
 
@@ -107,7 +107,7 @@ let mut indices_with_scores = self
 
         p_scores.sort_by(|a, b| a.total_cmp(b));
 
-        let score = p_scores[^0] * p_scores[^1];
+        let score = p_scores[0] * p_scores[1];
         (i, score)
     })
     .rev()
@@ -116,7 +116,7 @@ let mut indices_with_scores = self
 indices_with_scores.sort_by(|a, b| b.1.total_cmp(&a.1));
 ```
 
-Der der er værd at se, er at `p_scores`, som er hvert punkts score, udregnes ved at regne hvert punkts afstand til kameraet. Dernæst sorteret `p_scores`, så de tætteste punkter ligger i `[^0]` og `[^1]`, som derefter bruges til at regne den totale score. Til sidst sorteres `indices_with_scores`, så den længst væk liggende trekant ligger først.
+Der der er værd at se, er at `p_scores`, som er hvert punkts score, udregnes ved at regne hvert punkts afstand til kameraet. Dernæst sorteret `p_scores`, så de tætteste punkter ligger i `[0]` og `[1]`, som derefter bruges til at regne den totale score. Til sidst sorteres `indices_with_scores`, så den længst væk liggende trekant ligger først.
 
 Denne algoritme til at beregne score er vi kommet frem til gennem eksperimentering. Om dette er den optimale algoritme, ved vi ikke. Et populært alternative til at benytte en algoritme på denne måde er Z-buffering[^6]. Her beregnes afstanden for hvert enkelt pixel, og man opnår derved perfekt rendering af overlappende trekanter. Ulempen ved Z-buffering er, at det er beregningstungt. I realtidsapplikationer (såsom et spil) kan det derfor ikke svare sig, hvis man laver 3D-udregninerne på CPU'en. Det er ofte, at man foretager 3D-beregninerne på GPU'en istedet. Det gør vi ikke af flere årsager, så det behøver vi ikke at bekymre os om. Istedet er vores metode, at udregne en aggrigat-værdi for hver trekant. Dvs. istedet for en afstandsberegning for hvert pixel, laver vi 3 afstandsberegninger for hver trekant og en sortering af de 3 værdier.
 
@@ -135,7 +135,7 @@ for v in [tri3.0, tri3.1, tri3.2] {
 }
 ```
 
-For at filtrere trekanter fra, som vænder væk fra kameraet, benytter vi trekanternes normalvektor. Hvis prikproduktet af normalvektoren og afstanding mellem et af punkterne og kameraret er negativt, så ved vi, at trekanten vender i samme retning som kameraet. Vi kan derfor springe sådanne trekanter over. Dette er koden, som laver denne håndtering:
+For at filtrere trekanter fra, som vender væk fra kameraet, benytter vi trekanternes normalvektor. Hvis prikproduktet af normalvektoren og afstanding mellem et af punkterne og kameraret er negativt, så ved vi, at trekanten vender i samme retning som kameraet. Vi kan derfor springe sådanne trekanter over. Dette er koden, som laver denne håndtering:
 
 ```rust
 // src/engine/scene.rs
@@ -152,17 +152,17 @@ Når en figur renderes (normalvis i en `render` metode), instantieres et `Shape`
 
 #### Kommunikation med backenden
 
-Kommunikation med backend'en er enkapsuleret i `struct Server`-structet. Selvom den nok skulle have heddet `Backend`, så er den ansvarlig for at opsætte og vedligeholde forbindelsen til backenden. Kommunikationen benytter vores inhouse TCP-protokel. Pt. består den af et endpoint, som opretter en stream af sensor data.
+Kommunikation med backend'en er enkapsuleret i `struct Server`-structet. Selvom den nok skulle have heddet `Backend`, så er den ansvarlig for at opsætte og vedligeholde forbindelsen til backenden. Kommunikationen benytter vores in-house TCP-protokol. Pt. består den af et endpoint, som opretter en stream af sensor data.
 
 `Server`-struct'et har en metode `subscribe`, som kaldes med en callback-funktion. Denne metode registrer spillet i backend'en, sætter en datastream op, og kalder callback-funktionen for hvert sensor-measurement, der modtages fra backenden.
 
-I spilkoden bliver disse events samlet i en event queue. Event queue'en er en FIFO-buffer implementeret med Rusts `VecDec`-kontainer. Siden event queue'en skal virke over en thread boundary, er det nødvendigt med synkronisering. Dette gøres med Rust's `Arc<Mutex<T>>` type-pattern[^7].
+I spilkoden bliver disse events samlet i en event queue. Event queue'en er en FIFO-buffer implementeret med Rusts `VecDeque`-kontainer. Siden event queue'en skal virke over en thread boundary, er det nødvendigt med synkronisering. Dette gøres med Rust's `Arc<Mutex<T>>` type-pattern[^7].
 
 I `Game::update`-metoden tjekkes event queue'en for, om der er blevet tilføjet nye events. Hvis der er, så tømmes queue'en, og hver værdi bruges til at styre skateboardet.
 
 ## Skateboard
 
-Skateboard'et er implementeret med en Arduino Nano ESP32, hvori der sidder en ESP32-S3 chip. Tilkoblet ESP32'eren er en MPU6050, som er et kombineret elektronisk accelerometer og gyroskop. ESP32'eren læser værdier fra MPU6050'eren via en inhouse driver, og sender dataen til backend'en over MQTT. Skateboardet finder via WiFi til backenden via en indbygget konfiguration. Firmware'en benytter timers, preemptive multitasking og andre features fra IDF's version af FreeRTOS, til at håndtere kommunikation med MPU'en og backenden i seperate processor med tidsmæssig decoupling.
+Skateboard'et er implementeret med en Arduino Nano ESP32, hvori der sidder en ESP32-S3 chip. Tilkoblet ESP32'eren er en MPU6050, som er et kombineret elektronisk accelerometer og gyroskop. ESP32'eren læser værdier fra MPU6050'eren via en in-house driver, og sender dataen til backend'en over MQTT. Skateboardet finder via WiFi til backenden via en indbygget konfiguration. Firmware'en benytter timers, preemptive multitasking og andre features fra IDF's version af FreeRTOS, til at håndtere kommunikation med MPU'en og backenden i seperate processor med tidsmæssig decoupling.
 
 Koden ligger i `skateboard/` i repo'et.
 
@@ -323,7 +323,7 @@ Det ses, at en update-message eksempelvis kunne være `{"rotation":-49.321}`.
 
 ## Backend
 
-Backend'en er en C++-applikation som hosted via Docker Compose på en Linux-server. Backend'ens formål er at forbinde skateboardet med spillet. Dette gøres over 2 protokoller. Skateboardet kommunikerer med backenden over MQTT. Dette gøres med Mosquitto som message broker, som også kører på Linux-serveren med Docker Compose. Spillet kommunikerer med backenden over en inhouse TCP protokol.
+Backend'en er en C++-applikation som hosted via Docker Compose på en Linux-server. Backend'ens formål er at forbinde skateboardet med spillet. Dette gøres over 2 protokoller. Skateboardet kommunikerer med backenden over MQTT. Dette gøres med Mosquitto som message broker, som også kører på Linux-serveren med Docker Compose. Spillet kommunikerer med backenden over en in-house TCP protokol.
 
 Koden ligger i `backend/` i repo'et.
 
@@ -396,7 +396,7 @@ client.publish("/my/topic", "message to publish");
 
 #### TCP-server
 
-Det andet komponent er en TCP-server. TCP-serveren understøtter vores inhouse protokol til at kommunikere data til spillet. TCP-serveren er enkapsuleret i `mst::server::Server`-klassen, defineret i `src/server.hpp` og `src/server.cpp`. Serveren bruger Linux's (POSIX's) indbyggede socket-API. Vi har valgt at bruge denne API, da vi har et lille behov for funktionalitet. Vi ønsker en simpel og barebones TCP-server, og derfor egner den relativt primitive socket TCP/IP-API sig godt. Derudover viste vi, at serveren kun skulle køre i et Linux-miljø. Før vi valgte socket-API'en og TCP-protokollen undersøgte vi libmicrohttp. Vi konkluderede, at en inhouse TCP protokol og socket-API'en ville være nemmest og simplest stil vores formål. Til implementeringen brugte vi *Beej's Guide to Network Programming* som reference[^12].
+Det andet komponent er en TCP-server. TCP-serveren understøtter vores in-house protokol til at kommunikere data til spillet. TCP-serveren er enkapsuleret i `mst::server::Server`-klassen, defineret i `src/server.hpp` og `src/server.cpp`. Serveren bruger Linux's (POSIX's) indbyggede socket-API. Vi har valgt at bruge denne API, da vi har et lille behov for funktionalitet. Vi ønsker en simpel og barebones TCP-server, og derfor egner den relativt primitive socket TCP/IP-API sig godt. Derudover viste vi, at serveren kun skulle køre i et Linux-miljø. Før vi valgte socket-API'en og TCP-protokollen undersøgte vi libmicrohttp. Vi konkluderede, at en in-house TCP protokol og socket-API'en ville være nemmest og simplest stil vores formål. Til implementeringen brugte vi *Beej's Guide to Network Programming* som reference[^12].
 
 
 Serveren udstiller et interface som følgende:
@@ -414,7 +414,7 @@ Pt. er der et enkelt endpoint i TCP-protokellen: `Subscribe`. Et subscribe-kald 
 
 #### JSON-parser
 
-I backend-applikationen er der en inhouse JSON-parser. Vi valgte, at bruge vores egen JSON-parser, da vi havde brug for den ekstra performance, vi kunne få ud af en custom implementering. JSON-parseren er enkapsuleret i `mst::json::Value` og `mst::json::parse()`, og defineret i `src/json.hpp` og `src/json.cpp`. JSON-parseren er originalt et C-projekt, som vi har ported til C++23. Med en hurtig tokenizer, fleksibel parser, vel-defineret interface og simpelt query-funktionalitet, forsøger JSON-parseren at være både hurtig og nem at bruge. Vores JSON-parser er ikke 100% standards complient[^13], men den opfylder vores behov. Alternativer til en inhouse implementation kunne være nlohmann/json[^14] eller simdjson[^15]. Et eksempel (taget fra en unittest) er følgende:
+I backend-applikationen er der en in-house JSON-parser. Vi valgte, at bruge vores egen JSON-parser, da vi havde brug for den ekstra performance, vi kunne få ud af en custom implementering. JSON-parseren er enkapsuleret i `mst::json::Value` og `mst::json::parse()`, og defineret i `src/json.hpp` og `src/json.cpp`. JSON-parseren er originalt et C-projekt, som vi har ported til C++23. Med en hurtig tokenizer, fleksibel parser, vel-defineret interface og simpelt query-funktionalitet, forsøger JSON-parseren at være både hurtig og nem at bruge. Vores JSON-parser er ikke 100% standards complient[^13], men den opfylder vores behov. Alternativer til en in-house implementation kunne være nlohmann/json[^14] eller simdjson[^15]. Et eksempel (taget fra en unittest) er følgende:
 ```c++
 auto object = *json::parse(R"( { "rotation": -0.0123 } )");
 
@@ -448,7 +448,7 @@ Vi har valgt at implementere disse continuous integration pipelines primært for
 
 ## Konklusion
 
-For at opsummere: Vi har et Slope-agtigt spil med 3D-rendering som anvender diverse matematik og algoritmer til at rendere 3D. Vi har et skateboard, som består af et fysisk skateboard, hvorpå vi har installeret en ESP32-S3 microcontroller og MPU6050 gyroskop/accelerometer-modul til at måle og beregne skateboardets vinkel. Via en WiFi-forbindelse sender skateboardet data til backenden via MQTT. Backenden består af en Mosquitto message broker og en C++-serverapplikation. Serverapplikationen er selv en MQTT-klient, men udsteder også en server med en inhouse TCP-protokol. Spillet forbinder til backend'en, og modtager, gennem TCP-protokellen, sensordata, som spillet bruger som brugerinput.
+For at opsummere: Vi har et Slope-agtigt spil med 3D-rendering som anvender diverse matematik og algoritmer til at rendere 3D. Vi har et skateboard, som består af et fysisk skateboard, hvorpå vi har installeret en ESP32-S3 microcontroller og MPU6050 gyroskop/accelerometer-modul til at måle og beregne skateboardets vinkel. Via en WiFi-forbindelse sender skateboardet data til backenden via MQTT. Backenden består af en Mosquitto message broker og en C++-serverapplikation. Serverapplikationen er selv en MQTT-klient, men udsteder også en server med en in-house TCP-protokol. Spillet forbinder til backend'en, og modtager, gennem TCP-protokellen, sensordata, som spillet bruger som brugerinput.
 
 [^1]: https://github.com/Mercantec-GHC/h5-projekt-mst
 [^2]: https://wiki.libsdl.org/SDL3/FrontPage
