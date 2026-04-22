@@ -1,6 +1,8 @@
 
 # Skateboard-slope - Produktrapport
 
+*Mikkel Kongsted, Theis Pieter Hollebeek, S. Jakobsen &lt;sfja2004@gmail.com&gt; - 27.4.2026*
+
 **Skateboard-slope er et singler-player-spil, hvor spilleren styrer et objekt ned af en bane og undgår forhendringer på vejen. Spillet styres af en fysisk skateboard-device.**
 
 Løsningen består af 1) et spil implementeret som en Desktop-applikation, 2) en Skateboard-device implementeret som en embedded device men en ESP32-S3 og en MPU6050 kombineret accelerometer og gyroskop, 3) en backend-server som understøtter kommunikation over MQTT og over vores in-house TCP-protokol, og 4) en CI-opsætningen med pipelines for hvert kodeprojekt.
