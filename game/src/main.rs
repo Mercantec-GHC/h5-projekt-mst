@@ -8,6 +8,7 @@ use core::panic;
 use std::{
     collections::{vec_deque, HashSet, VecDeque},
     f64::consts::PI,
+    ops::Index,
     sync::{Arc, Mutex},
     thread,
     time::Duration,
@@ -190,8 +191,7 @@ impl GroundMicroManager {
                 grid_width,
                 grid_depth,
                 grid_item_size,
-                position: start_position
-                    + V3(0.0, 0.0, grid_depth as f64 * grid_item_size * i as f64),
+                pos: start_position + V3(0.0, 0.0, grid_depth as f64 * grid_item_size * i as f64),
             });
         }
         Self {
@@ -206,12 +206,31 @@ impl GroundMicroManager {
     pub fn shuffle(&mut self) {
         let mut first = self.ground.pop_front().unwrap();
         let last = self.ground.back().unwrap();
-        first.position = last.position + V3(0.0, 0.0, self.grid_depth as f64 * self.grid_item_size);
+        first.pos = last.pos + V3(0.0, 0.0, self.grid_depth as f64 * self.grid_item_size);
         self.ground.push_back(first);
     }
     pub fn should_shuffle(&self, z: f64) -> bool {
         let first = self.ground.front().unwrap();
-        first.position.2 + self.grid_depth as f64 * self.grid_item_size > z
+        first.pos.2 + self.grid_depth as f64 * self.grid_item_size < z
+    }
+    pub fn render(&self, scene: &mut Scene) {
+        for ground_part in &self.ground {
+            let mut shapes = Vec::new();
+            for z in 0..self.grid_depth {
+                for x in -self.grid_width / 2..self.grid_width / 2 {
+                    shapes.push(ShapeGroupShape {
+                        shape: Shape::new_plane(V3(self.grid_item_size, 0.0, self.grid_item_size)),
+                        offset: V3(
+                            x as f64 * self.grid_item_size,
+                            0.0,
+                            z as f64 * self.grid_item_size,
+                        ),
+                    });
+                }
+            }
+            let ground = ShapeGroup::new(shapes);
+            ground.draw(ground_part.pos, scene, Color::Cyan, Color::Black);
+        }
     }
 }
 
@@ -323,6 +342,8 @@ impl<R: Renderer> engine::Game<R> for Game {
 
     fn render(&mut self, r: &mut R) {
         let mut scene = Scene::new();
+        self.ground.render(&mut scene);
+
         self.skateboard.render(&mut scene);
         for object in &self.segments {
             object.render(&mut scene);
@@ -354,7 +375,7 @@ struct Obstacle {
 #[derive(Clone, Copy)]
 
 struct Ground {
-    position: V3,
+    pos: V3,
     grid_item_size: f64,
     grid_width: i32,
     grid_depth: i32,
@@ -367,7 +388,7 @@ struct Segment {
 }
 
 impl Segment {
-    fn new(id: i32, obstacles: Vec<Obstacle>, ground: Ground) -> Self {
+    fn new(id: i32, obstacles: Vec<Obstacle>) -> Self {
         Self {
             id,
             obstacles,
@@ -407,25 +428,6 @@ impl Segment {
                 Color::Black,
             );
         }
-        let mut shapes = Vec::new();
-        for z in 0..self.ground.grid_depth {
-            for x in -self.ground.grid_width / 2..self.ground.grid_width / 2 {
-                shapes.push(ShapeGroupShape {
-                    shape: Shape::new_plane(V3(
-                        self.ground.grid_item_size,
-                        0.0,
-                        self.ground.grid_item_size,
-                    )),
-                    offset: V3(
-                        x as f64 * self.ground.grid_item_size,
-                        0.0,
-                        z as f64 * self.ground.grid_item_size,
-                    ),
-                });
-            }
-        }
-        let ground = ShapeGroup::new(shapes);
-        ground.draw(self.ground.pos, scene, Color::Cyan, Color::Black);
     }
 }
 
@@ -497,7 +499,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut segments: Vec<Segment> = Vec::new();
     for i in 0..5 {
-        let ground = first_segment.ground;
         let obstacle = first_segment.obstacles[0];
         segments.push(Segment::new(
             first_segment.id + i,
