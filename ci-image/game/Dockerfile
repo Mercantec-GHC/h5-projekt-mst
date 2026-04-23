@@ -1,4 +1,4 @@
-FROM rust:alpine3.23
-RUN apk add --no-cache sdl3-dev sdl3_ttf-dev
+FROM rust:trixie
+RUN apt-get update && apt-get install libsdl3-dev libsdl3-ttf-dev -y
 RUN rustup component add clippy
 
