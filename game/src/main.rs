@@ -6,9 +6,8 @@ use rand::Rng;
 
 use core::panic;
 use std::{
-    collections::{vec_deque, HashSet, VecDeque},
+    collections::{HashSet, VecDeque},
     f64::consts::PI,
-    ops::Index,
     sync::{Arc, Mutex},
     thread,
     time::Duration,
@@ -19,18 +18,7 @@ use crate::{
     server::Server,
 };
 
-struct SegmentFactory;
-
-trait SegmentKind {
-    fn obstacles(self) -> Vec<Obstacle>;
-}
-
-impl SegmentFactory {
-    fn new() {}
-}
-
 struct Skateboard {
-    start_pos: V3,
     pos: V3,
     size: V3,
     vel: V3,
@@ -40,13 +28,17 @@ struct Skateboard {
     pivot_deg_target: f64,
 }
 
+fn lose() {
+    panic!("You lost 🫵 😂");
+}
+
 impl Skateboard {
     fn update(&mut self, delta_time: Duration) {
         self.vel.0 = self.pivot_deg * 2.0 * delta_time.as_secs_f64();
         self.pos += self.vel * delta_time.as_secs_f64();
         self.nyoom_factor += 16.0 * delta_time.as_secs_f64();
         if self.pos.0 < -0.5 || self.pos.0 > 0.5 {
-            panic!("LLLLL");
+            lose();
         }
     }
 
@@ -166,16 +158,7 @@ struct UpdateCx<'game> {
     skateboard: &'game mut Skateboard,
 }
 
-struct Game {
-    skateboard: Skateboard,
-    segments: Vec<Segment>,
-    camera_pos: V3,
-    keys_pressed: HashSet<Key>,
-    event_queue: Arc<Mutex<VecDeque<f64>>>,
-    ground: GroundMicroManager,
-}
-
-struct GroundMicroManager {
+struct GroundManager {
     ground: VecDeque<Ground>,
     start_position: V3,
     grid_item_size: f64,
@@ -183,10 +166,16 @@ struct GroundMicroManager {
     grid_depth: i32,
 }
 
-impl GroundMicroManager {
-    pub fn new(start_position: V3, grid_item_size: f64, grid_width: i32, grid_depth: i32) -> Self {
+impl GroundManager {
+    pub fn new(
+        start_position: V3,
+        grid_item_size: f64,
+        grid_width: i32,
+        grid_depth: i32,
+        render_distance: i32,
+    ) -> Self {
         let mut ground = VecDeque::new();
-        for i in 0..3 {
+        for i in 0..render_distance {
             ground.push_back(Ground {
                 grid_width,
                 grid_depth,
@@ -234,13 +223,140 @@ impl GroundMicroManager {
     }
 }
 
+struct SegmentFactory {
+    segment_depth: f64,
+    segment_width: f64,
+}
+
+impl SegmentFactory {
+    pub fn new(segment_depth: f64, segment_width: f64) -> Self {
+        Self {
+            segment_depth,
+            segment_width,
+        }
+    }
+
+    pub fn random_obstacle_segment(&self, pos: V3) -> Segment {
+        let mut rng = rand::thread_rng();
+        let mut obstacles: Vec<Obstacle> = Vec::new();
+        for i in 1..5 {
+            obstacles.push(Obstacle {
+                pos: V3(
+                    rng.gen_range((-self.segment_width / 2.0)..(self.segment_width / 2.0)) - 0.1,
+                    0.0,
+                    self.segment_depth / i as f64,
+                ),
+                vel: V3(0.0, 0.0, 0.0),
+                size: V3(0.1, 0.1, 0.1),
+            })
+        }
+        Segment::new(pos, obstacles)
+    }
+
+    pub fn slalom_obstacle_segment(&self, pos: V3) -> Segment {
+        let mut obstacles: Vec<Obstacle> = Vec::new();
+        for i in 0..3 {
+            let is_left = i % 2 == 0;
+            let width = 0.5;
+            let offset = if is_left { -0.5 } else { 0.5 - width };
+            obstacles.push(Obstacle {
+                pos: V3(offset as f64, 0.0, self.segment_depth / i as f64),
+                vel: V3(0.0, 0.0, 0.0),
+                size: V3(width, 0.1, 0.1),
+            })
+        }
+        Segment::new(pos, obstacles)
+    }
+
+    pub fn new_random_segment(&self, pos: V3) -> Segment {
+        use SegmentKind::*;
+        let mut rng = rand::thread_rng();
+
+        let segment_kind = &[RandomObstacles, SlalomObstacles][rng.gen_range(0..2)];
+
+        match segment_kind {
+            SegmentKind::RandomObstacles => self.random_obstacle_segment(pos),
+            SegmentKind::MovingObstacles => todo!(),
+            SegmentKind::SlalomObstacles => self.slalom_obstacle_segment(pos),
+        }
+    }
+}
+
+struct SegmentManager {
+    segment_depth: f64,
+    segment_width: f64,
+    segment_factory: SegmentFactory,
+    segments: VecDeque<Segment>,
+    start_pos: V3,
+}
+
+impl SegmentManager {
+    pub fn new(
+        start_pos: V3,
+        render_distance: i32,
+        segment_depth: f64,
+        segment_width: f64,
+    ) -> Self {
+        let mut segments: VecDeque<Segment> = VecDeque::new();
+        let segment_factory = SegmentFactory {
+            segment_depth,
+            segment_width,
+        };
+        for i in 0..render_distance {
+            segments.push_back(segment_factory.new_random_segment(V3(
+                start_pos.0,
+                start_pos.1,
+                start_pos.2 + segment_depth * i as f64,
+            )));
+        }
+
+        Self {
+            segment_depth,
+            segment_width,
+            segment_factory,
+            segments,
+            start_pos,
+        }
+    }
+
+    pub fn shuffle(&mut self) {
+        let mut first = self.segments.pop_front().unwrap();
+        let last = self.segments.back().unwrap();
+        first.pos = last.pos + V3(0.0, 0.0, self.segment_depth as f64);
+        self.segments.push_back(first);
+    }
+    pub fn should_shuffle(&self, z: f64) -> bool {
+        let first = self.segments.front().unwrap();
+        first.pos.2 + self.segment_depth < z
+    }
+
+    pub fn update(&mut self, cx: &mut UpdateCx, delta_time: Duration) {
+        for segment in &mut self.segments {
+            segment.update(cx, delta_time);
+        }
+    }
+
+    pub fn render(&self, scene: &mut Scene) {
+        for segment in &self.segments {
+            segment.render(scene);
+        }
+    }
+}
+
+struct Game {
+    skateboard: Skateboard,
+    segment_manager: SegmentManager,
+    camera_pos: V3,
+    keys_pressed: HashSet<Key>,
+    event_queue: Arc<Mutex<VecDeque<f64>>>,
+    ground: GroundManager,
+}
+
 impl Game {
     fn new() -> Self {
-        let start_pos = V3(0.0, -0.15, 0.0);
         Self {
             skateboard: Skateboard {
-                start_pos,
-                pos: start_pos,
+                pos: V3(0.0, -0.20, 0.0),
                 size: V3(0.05, 0.02, 0.15),
                 vel: V3(0.0, 0.0, 0.2),
                 rot: V3(0.0, PI * 0.5, 0.0),
@@ -250,23 +366,10 @@ impl Game {
             },
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             camera_pos: V3(0.0, 0.0, 0.0),
-            segments: Vec::new(),
+            segment_manager: SegmentManager::new(V3(0.0, -0.24, -0.4), 3, 2.0, 1.0),
             keys_pressed: HashSet::new(),
-            ground: GroundMicroManager::new(V3(0.0, -0.25, -0.4), 0.1, 10, 20),
+            ground: GroundManager::new(V3(0.0, -0.25, -0.4), 0.1, 10, 20, 3),
         }
-    }
-
-    fn spawn(&mut self, segment: Segment) {
-        self.segments.push(segment);
-    }
-
-    fn despawn(&mut self, id: i32) {
-        let index = self
-            .segments
-            .iter()
-            .position(|s| s.id == id)
-            .expect("doesn't exist");
-        self.segments.remove(index);
     }
 }
 
@@ -278,7 +381,7 @@ impl<R: Renderer> engine::Game<R> for Game {
             self.skateboard.pos.1 + 0.15,
             self.skateboard.pos.2 - 0.4,
         );
-        if self.ground.should_shuffle(self.skateboard.pos.2) {
+        if self.ground.should_shuffle(self.camera_pos.2) {
             self.ground.shuffle();
         }
 
@@ -308,35 +411,14 @@ impl<R: Renderer> engine::Game<R> for Game {
             * delta_time.as_secs_f64();
         self.skateboard.pivot_deg = self.skateboard.pivot_deg.clamp(-12.5, 12.5);
 
-        let ids = self
-            .segments
-            .iter()
-            .enumerate()
-            .map(|(i, segment)| (i, segment.id))
-            .rev()
-            .collect::<Vec<_>>();
-
-        for (i, id) in ids {
-            let segment = &self.segments[i];
-            if segment.should_despawn {
-                self.despawn(segment.id);
-            }
-        }
-
-        let ids = self
-            .segments
-            .iter()
-            .enumerate()
-            .map(|(i, segment)| (i, segment.id))
-            .collect::<Vec<_>>();
-
         let mut cx = UpdateCx {
             skateboard: &mut self.skateboard,
         };
 
-        for (i, id) in ids {
-            let segment = &mut self.segments[i];
-            segment.update(&mut cx, delta_time);
+        self.segment_manager.update(&mut cx, delta_time);
+
+        if self.segment_manager.should_shuffle(self.camera_pos.2) {
+            self.segment_manager.shuffle();
         }
     }
 
@@ -345,9 +427,7 @@ impl<R: Renderer> engine::Game<R> for Game {
         self.ground.render(&mut scene);
 
         self.skateboard.render(&mut scene);
-        for object in &self.segments {
-            object.render(&mut scene);
-        }
+        self.segment_manager.render(&mut scene);
         scene.render(r, self.camera_pos);
         let id = r.load_text(
             &format!("{}", (self.skateboard.pos.2 * 100.0) as u32),
@@ -381,24 +461,26 @@ struct Ground {
     grid_depth: i32,
 }
 
+enum SegmentKind {
+    RandomObstacles,
+    MovingObstacles,
+    SlalomObstacles,
+}
+
 struct Segment {
-    id: i32,
+    pos: V3,
     obstacles: Vec<Obstacle>,
-    should_despawn: bool,
 }
 
 impl Segment {
-    fn new(id: i32, obstacles: Vec<Obstacle>) -> Self {
-        Self {
-            id,
-            obstacles,
-            should_despawn: false,
-        }
+    fn new(pos: V3, obstacles: Vec<Obstacle>) -> Self {
+        Self { pos, obstacles }
     }
 
     fn update<'game>(&mut self, cx: &mut UpdateCx<'game>, delta_time: Duration) {
         for obstacle in &mut self.obstacles {
             obstacle.pos += obstacle.vel * delta_time.as_secs_f64();
+            let actual_obstacle_pos = obstacle.pos + self.pos;
             let (skateboard_pos, skateboard_pos_and_size) = (
                 V2(
                     cx.skateboard.pos.0 - cx.skateboard.size.0 / 2.0,
@@ -409,12 +491,12 @@ impl Segment {
                     cx.skateboard.pos.2 + cx.skateboard.size.2 / 2.0,
                 ),
             );
-            if skateboard_pos.0 < obstacle.pos.0 + obstacle.size.0
-                && skateboard_pos_and_size.0 > obstacle.pos.0
-                && skateboard_pos.1 < obstacle.pos.2 + obstacle.size.2
-                && skateboard_pos_and_size.1 > obstacle.pos.2
+            if skateboard_pos.0 < actual_obstacle_pos.0 + obstacle.size.0
+                && skateboard_pos_and_size.0 > actual_obstacle_pos.0
+                && skateboard_pos.1 < actual_obstacle_pos.2 + obstacle.size.2
+                && skateboard_pos_and_size.1 > actual_obstacle_pos.2
             {
-                panic!("You lost 🫵 😂");
+                lose();
             }
         }
     }
@@ -422,7 +504,7 @@ impl Segment {
     fn render(&self, scene: &mut Scene) {
         for obstacle in &self.obstacles {
             scene.draw_shape(
-                obstacle.pos,
+                self.pos + obstacle.pos,
                 &Shape::new_cube(obstacle.size),
                 Color::Red,
                 Color::Black,
@@ -486,37 +568,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
             .unwrap();
     });
-
-    let first_segment: Segment = Segment::new(
-        0,
-        vec![Obstacle {
-            pos: V3(0.0, -0.248, 1.0),
-            vel: V3(0.0, 0.0, 0.0),
-            size: V3(0.1, 0.1, 0.1),
-        }],
-    );
-    let mut rng = rand::thread_rng();
-
-    let mut segments: Vec<Segment> = Vec::new();
-    for i in 0..5 {
-        let obstacle = first_segment.obstacles[0];
-        segments.push(Segment::new(
-            first_segment.id + i,
-            vec![Obstacle {
-                pos: V3(
-                    obstacle.pos.0 + rng.gen_range(-0.5..0.5),
-                    obstacle.pos.1,
-                    obstacle.pos.2 + obstacle.pos.2 * i as f64,
-                ),
-                vel: obstacle.vel,
-                size: obstacle.size,
-            }],
-        ))
-    }
-
-    for segment in segments {
-        game.spawn(segment);
-    }
 
     sdl_io.run(&mut game);
     Ok(())
