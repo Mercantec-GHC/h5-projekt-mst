@@ -1,10 +1,9 @@
 #![allow(dead_code)]
 
 mod engine;
+mod random;
 mod server;
-use rand::Rng;
 
-use core::panic;
 use std::{
     collections::{HashSet, VecDeque},
     f64::consts::PI,
@@ -237,12 +236,13 @@ impl SegmentFactory {
     }
 
     pub fn random_obstacle_segment(&self, pos: V3) -> Segment {
-        let mut rng = rand::thread_rng();
         let mut obstacles: Vec<Obstacle> = Vec::new();
         for i in 1..5 {
             obstacles.push(Obstacle {
                 pos: V3(
-                    rng.gen_range((-self.segment_width / 2.0)..(self.segment_width / 2.0)) - 0.1,
+                    random::next_in_range_f64(
+                        (-self.segment_width / 2.0)..(self.segment_width / 2.0),
+                    ) - 0.1,
                     0.0,
                     self.segment_depth / i as f64,
                 ),
@@ -250,7 +250,25 @@ impl SegmentFactory {
                 size: V3(0.1, 0.1, 0.1),
             })
         }
-        Segment::new(pos, obstacles)
+        Segment::new(SegmentKind::RandomObstacles, pos, obstacles)
+    }
+
+    pub fn moving_obstacle_segment(&self, pos: V3) -> Segment {
+        let mut obstacles: Vec<Obstacle> = Vec::new();
+        for i in 1..4 {
+            obstacles.push(Obstacle {
+                pos: V3(
+                    random::next_in_range_f64(
+                        (-self.segment_width / 2.0)..(self.segment_width / 2.0),
+                    ) - 0.1,
+                    0.0,
+                    self.segment_depth / i as f64,
+                ),
+                vel: V3(0.1, 0.0, 0.0),
+                size: V3(0.1, 0.1, 0.1),
+            })
+        }
+        Segment::new(SegmentKind::MovingObstacles, pos, obstacles)
     }
 
     pub fn slalom_obstacle_segment(&self, pos: V3) -> Segment {
@@ -265,18 +283,20 @@ impl SegmentFactory {
                 size: V3(width, 0.1, 0.1),
             })
         }
-        Segment::new(pos, obstacles)
+        Segment::new(SegmentKind::SlalomObstacles, pos, obstacles)
     }
 
     pub fn new_random_segment(&self, pos: V3) -> Segment {
         use SegmentKind::*;
-        let mut rng = rand::thread_rng();
+        let choice: usize = random::next() as usize;
 
-        let segment_kind = &[RandomObstacles, SlalomObstacles][rng.gen_range(0..2)];
+        let segment_kind = &[RandomObstacles, MovingObstacles, SlalomObstacles][choice % 3];
+
+        dbg!(segment_kind);
 
         match segment_kind {
             SegmentKind::RandomObstacles => self.random_obstacle_segment(pos),
-            SegmentKind::MovingObstacles => todo!(),
+            SegmentKind::MovingObstacles => self.moving_obstacle_segment(pos),
             SegmentKind::SlalomObstacles => self.slalom_obstacle_segment(pos),
         }
     }
@@ -320,10 +340,14 @@ impl SegmentManager {
     }
 
     pub fn shuffle(&mut self) {
-        let mut first = self.segments.pop_front().unwrap();
+        self.segments.pop_front().unwrap();
         let last = self.segments.back().unwrap();
-        first.pos = last.pos + V3(0.0, 0.0, self.segment_depth as f64);
-        self.segments.push_back(first);
+        self.segments
+            .push_back(self.segment_factory.new_random_segment(V3(
+                last.pos.0,
+                last.pos.1,
+                last.pos.2 + self.segment_depth,
+            )));
     }
     pub fn should_shuffle(&self, z: f64) -> bool {
         let first = self.segments.front().unwrap();
@@ -366,9 +390,9 @@ impl Game {
             },
             event_queue: Arc::new(Mutex::new(VecDeque::new())),
             camera_pos: V3(0.0, 0.0, 0.0),
-            segment_manager: SegmentManager::new(V3(0.0, -0.24, -0.4), 3, 2.0, 1.0),
+            segment_manager: SegmentManager::new(V3(0.0, -0.24, 1.6), 4, 2.0, 1.0),
             keys_pressed: HashSet::new(),
-            ground: GroundManager::new(V3(0.0, -0.25, -0.4), 0.1, 10, 20, 3),
+            ground: GroundManager::new(V3(0.0, -0.25, -0.4), 0.1, 10, 20, 4),
         }
     }
 }
@@ -461,6 +485,7 @@ struct Ground {
     grid_depth: i32,
 }
 
+#[derive(Debug)]
 enum SegmentKind {
     RandomObstacles,
     MovingObstacles,
@@ -468,18 +493,36 @@ enum SegmentKind {
 }
 
 struct Segment {
+    segment_kind: SegmentKind,
     pos: V3,
     obstacles: Vec<Obstacle>,
 }
 
 impl Segment {
-    fn new(pos: V3, obstacles: Vec<Obstacle>) -> Self {
-        Self { pos, obstacles }
+    fn new(segment_kind: SegmentKind, pos: V3, obstacles: Vec<Obstacle>) -> Self {
+        Self {
+            segment_kind,
+            pos,
+            obstacles,
+        }
     }
 
     fn update<'game>(&mut self, cx: &mut UpdateCx<'game>, delta_time: Duration) {
         for obstacle in &mut self.obstacles {
             obstacle.pos += obstacle.vel * delta_time.as_secs_f64();
+            match self.segment_kind {
+                SegmentKind::RandomObstacles => {}
+                SegmentKind::MovingObstacles => {
+                    if obstacle.pos.0 > 0.5 - obstacle.size.0 {
+                        obstacle.vel.0 = -obstacle.vel.0;
+                        obstacle.pos.0 = 0.5 - obstacle.size.0;
+                    } else if obstacle.pos.0 < (-0.5) {
+                        obstacle.vel.0 = -obstacle.vel.0;
+                        obstacle.pos.0 = -0.5;
+                    }
+                }
+                SegmentKind::SlalomObstacles => {}
+            }
             let actual_obstacle_pos = obstacle.pos + self.pos;
             let (skateboard_pos, skateboard_pos_and_size) = (
                 V2(
