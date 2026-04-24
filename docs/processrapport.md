@@ -21,24 +21,21 @@ Med det samme efter at havde valgt ideen med Slope-spil og skateboard, gik vi i 
 
 Vi bestilte hardware'en med det samme. Ideen var, at jo hurtigere vi fik mulighed for at arbejde med hardware'en, desto hurtigere ville vi finde ud af, om det passede vores behov. I mellemtiden kiggede vi efter hardware med lignende funktionalitet. Skolen havde et Arduino OPLA kit tilrådighed. Her kunne vi lave et eksperiment med OPLA-hattens accelerometer/gyroskob og den Arduino MKR 1010 WiFi, som følger med. Med dette setup og Arduino's manual, lavede vi et program, som aflæste målingsværdierne og plottede det på en visuel graf.
 
-![](./acceleration_graph.png)
-MPU'ens accelerations- og vinkelaccelerationsmålinger plottet over tid på en graf.
+![](./acceleration_graph.png)<br>MPU'ens accelerations- og vinkelaccelerationsmålinger plottet over tid på en graf.
 
 *23-3-2026*
 
 Efter weekenden kom vores hardware. Omgående gik vi i gang med at lave et setup til at påvise, at hardware'en passede til vores behov. I første omgang krævede det, at der blev lodet pins på MPU6050'en. En af gruppemedlemmerne har erfaring med lodning, og lodede dem på. ESP32'eren og MPU'en blev herefter monteret på et breadboard.
 
-![](./soldering1.png)
-Lodestation med MPU6050 understøttet af en blyant.
-![](./soldering2.png)
-MPU6050 med pins lodet på.
+![](./soldering1.png)<br>Lodestation med MPU6050 understøttet af en blyant.
+
+![](./soldering2.png)<br>MPU6050 med pins lodet på.
 
 Herfra forsøgte vi så hurtigt som muligt, at lave en firmware, hvor vi kunne aflæse MPU6050'erens målinger gennem I2C på ESP32-S3'eren, og sende det til host-computeren. Dette kom til at virke samme dag.
 
-![](./images/20260324_155355.jpg)
-MPU6050 måledata, sendt fra ESP32, vist på host-computer.
-![](./images/20260324_155351.jpg)
-Setup med breadboard og data på skærmen.
+![](./images/20260324_155355.jpg)<br>MPU6050 måledata, sendt fra ESP32, vist på host-computer.
+
+![](./images/20260324_155351.jpg)<br>Setup med breadboard og data på skærmen.
 
 Vi kunne på nuværende tidspunkt bekræfte, at dette hardware-setup opfyldte de krav, som vi havde. Vi vurderede altså, at setup'et, som det var på breadboardet, var fyldesgørende. Dette var en af to store usikkerheder i projektet. Ved at have lagt denne usikkerhed bag os, kunne vi nu planlægge uden uvisheden af, om det overhovedet var muligt.
 
