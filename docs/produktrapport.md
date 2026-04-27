@@ -87,7 +87,7 @@ Ovenstående giver funktionalitet for at udrenge positionerne for enkelte trekan
 
 Figurene skabes og håndteres med `struct Shape` struct'et. Med dette struct kan man skabe en figure ud af de prædefinerede, som så skaleres efter behov. Structet har methods, så man kan iterere over vertices, edges og faces i form af `V3`- og `Triangle3`-værdier. Formerne kan også roteres og flyttes.
 
-For at tegne shapes, dvs. flere trekanter på en gang, har vi implementeret `struct Scene` structet. Dette er defineret i `src/engine/scene.rs`. Formålet med dette struct, er at man kan bygge en scene og så rendere den. Når scenen renderes sørger structet for at tegne alle trekanter i den rigtige rækkefølge. Trekanter udenfor skærmen og trækanter der vender væk fra skærmen renderes ikke. Den er implementeret, ved at den akkumulerer en liste af trekanter sammen med hver trekants normalvektor og farver. Når `Scene::render` kaldes, sorteres alle trekanter ift. distance fra skærmen, derefter itereres der over alle trekanter, projektioner udregnes og trekanterne tegnes med `Renderer::draw_triangle`.
+For at tegne shapes, dvs. flere trekanter på en gang, har vi implementeret `struct Scene` structet. Dette er defineret i `src/engine/scene.rs`. Formålet med dette struct, er at man kan bygge en scene og så rendere den. Når scenen renderes sørger structet for at tegne alle trekanter i den rigtige rækkefølge. Trekanter udenfor skærmen og trekanter der vender væk fra skærmen renderes ikke. Den er implementeret, ved at den akkumulerer en liste af trekanter sammen med hver trekants normalvektor og farver. Når `Scene::render` kaldes, sorteres alle trekanter ift. distance fra skærmen, derefter itereres der over alle trekanter, projektioner udregnes og trekanterne tegnes med `Renderer::draw_triangle`.
 
 #### Sortering af trekanter
 
@@ -116,7 +116,7 @@ let mut indices_with_scores = self
 indices_with_scores.sort_by(|a, b| b.1.total_cmp(&a.1));
 ```
 
-Der der er værd at se, er at `p_scores`, som er hvert punkts score, udregnes ved at regne hvert punkts afstand til kameraet. Dernæst sorteret `p_scores`, så de tætteste punkter ligger i `[0]` og `[1]`, som derefter bruges til at regne den totale score. Til sidst sorteres `indices_with_scores`, så den længst væk liggende trekant ligger først.
+Det der er værd at se, er at `p_scores`, som er hvert punkts score, udregnes ved at regne hvert punkts afstand til kameraet. Dernæst sorteret `p_scores`, så de tætteste punkter ligger i `[0]` og `[1]`, som derefter bruges til at regne den totale score. Til sidst sorteres `indices_with_scores`, så den længst væk liggende trekant ligger først.
 
 Denne algoritme til at beregne score er vi kommet frem til gennem eksperimentering. Om dette er den optimale algoritme, ved vi ikke. Et populært alternative til at benytte en algoritme på denne måde er Z-buffering[^6]. Her beregnes afstanden for hvert enkelt pixel, og man opnår derved perfekt rendering af overlappende trekanter. Ulempen ved Z-buffering er, at det er beregningstungt. I realtidsapplikationer (såsom et spil) kan det derfor ikke svare sig, hvis man laver 3D-udregninerne på CPU'en. Det er ofte, at man foretager 3D-beregninerne på GPU'en istedet. Det gør vi ikke af flere årsager, så det behøver vi ikke at bekymre os om. Istedet er vores metode, at udregne en aggrigat-værdi for hver trekant. Dvs. istedet for en afstandsberegning for hvert pixel, laver vi 3 afstandsberegninger for hver trekant og en sortering af de 3 værdier.
 
