@@ -24,7 +24,7 @@ Med det samme efter at havde valgt ideen med Slope-spil og skateboard, gik vi i 
 
 Vi bestilte hardware'en med det samme. Ideen var, at jo hurtigere vi fik mulighed for at arbejde med hardware'en, desto hurtigere ville vi finde ud af, om det passede vores behov. I mellemtiden kiggede vi efter hardware med lignende funktionalitet. Skolen havde et Arduino OPLA kit tilrådighed. Her kunne vi lave et eksperiment med OPLA-hattens accelerometer/gyroskob og den Arduino MKR 1010 WiFi, som følger med. Med dette setup og Arduino's manual, lavede vi et program, som aflæste målingsværdierne og plottede det på en visuel graf.
 
-![](./acceleration_graph.png)<br>MPU'ens accelerations- og vinkelaccelerationsmålinger plottet over tid på en graf.
+![](./acceleration_graph.png)<br>**Figur 1:** MPU'ens accelerations- og vinkelaccelerationsmålinger plottet over tid på en graf.
 
 ## 23-3-2026
 
@@ -32,15 +32,15 @@ Vi bestilte hardware'en med det samme. Ideen var, at jo hurtigere vi fik mulighe
 
 Efter weekenden kom vores hardware. Omgående gik vi i gang med at lave et setup til at påvise, at hardware'en passede til vores behov. I første omgang krævede det, at der blev lodet pins på MPU6050'en. En af gruppemedlemmerne har erfaring med lodning, og lodede dem på. ESP32'eren og MPU'en blev herefter monteret på et breadboard.
 
-![](./soldering1.png)<br>**Figur 1:** Lodestation med MPU6050 understøttet af en blyant.
+![](./soldering1.png)<br>**Figur 2:** Lodestation med MPU6050 understøttet af en blyant.
 
-![](./soldering2.png)<br>**Figur 2:** MPU6050 med pins lodet på.
+![](./soldering2.png)<br>**Figur 3:** MPU6050 med pins lodet på.
 
 Herfra forsøgte vi så hurtigt som muligt, at lave en firmware, hvor vi kunne aflæse MPU6050'erens målinger gennem I2C på ESP32-S3'eren, og sende det til host-computeren. Dette kom til at virke samme dag.
 
-![](./images/20260324_155355.jpg)<br>**Figur 3:** MPU6050 måledata, sendt fra ESP32, vist på host-computer.
+![](./images/20260324_155355.jpg)<br>**Figur 4:** MPU6050 måledata, sendt fra ESP32, vist på host-computer.
 
-![](./images/20260324_155351.jpg)<br>**Figur 4:** Setup med breadboard og data på skærmen.
+![](./images/20260324_155351.jpg)<br>**Figur 5:** Setup med breadboard og data på skærmen.
 
 Vi kunne på nuværende tidspunkt bekræfte, at dette hardware-setup opfyldte de krav, som vi havde. Vi vurderede altså, at setup'et, som det var på breadboardet, var fyldesgørende. Dette var en af to store usikkerheder i projektet. Ved at have lagt denne usikkerhed bag os, kunne vi nu planlægge uden uvisheden af, om det overhovedet var muligt.
 
@@ -86,7 +86,7 @@ I første omgang var prioriteten at få MPU-setup'et og 3D-renderingen til at vi
 
 Vi arbejdede på at få sensordata sendt over MQTT fra ESP32'eren til host-computeren. Vi lavede en opsætning ud fra nogle eksempelprojekter, som kunne læse sensordata, oprette forbindelse til WiFi og sende sensordataen over MQTT til en message broker på host computer'en. Løsningen var af meget lav kvalitet, men prioriteten var, at få noget til at virke så hurtigt som muligt. Ideen med dette var, at så snart vi havde noget der virkede, kunne vi ud fra dette, arbejde os frem til en bedre forståelse. Efter at få en bedre forståelse, ville vi kunne omskrive koden, så vi fik en løsning i bedre kvalitet.
 
-![](./gyro_and_acceleration_data.png)<br>**Figur 5:**  Gyro- og accelerometerdata vist på skærmen på host-computeren.
+![](./gyro_and_acceleration_data.png)<br>**Figur 6:**  Gyro- og accelerometerdata vist på skærmen på host-computeren.
 
 ### 3D-rendering
 
@@ -94,7 +94,7 @@ Vi fortsatte arbejdet på spillet. Vi arbejde på at få implementeret 3D-render
 
 Vi fik implementeret en simpel 3D-projektion. Dog understøttede denne implementation kun, at punkterne var defineres direkte ud for kameraet. I vores spil, kommer vi til at rendere objekter fra siden, så dette var ikke tilstrækkeligt.
 
-![](./3d_rendered_points.png)<br>**Figur 6:** Punkter på en terning renderet i 3D.
+![](./3d_rendered_points.png)<br>**Figur 7:** Punkter på en terning renderet i 3D.
 
 ## 25-3-2026
 
@@ -106,11 +106,11 @@ Vi fortsætte også på 3D-rendering uden meget fremgang.
 
 Udover oprydningsarbejde i backenden gik denne dag primært med arbejde på 3D-rendering. Ved at have bygget en bedre teoretisk forståelse, kunne vi gå mere metodisk til værks. Dette gjorde det muligt for os, at implementere en løsning som faktisk virkede.
 
-![](./jeg_er_picklerick.png)<br>**Figur 7:** 3D-figur af en terning defineret visuelt og med vertex- og face-tabeller.
+![](./jeg_er_picklerick.png)<br>**Figur 8:** 3D-figur af en terning defineret visuelt og med vertex- og face-tabeller.
 
-![](./z_equals_0.png)<br>**Figur 8:** Diagram af projektion med kamera og field of view.
+![](./z_equals_0.png)<br>**Figur 9:** Diagram af projektion med kamera og field of view.
 
-![](./3d_rendering_math.png)<br>**Figur 9:** Tidlig revision af formlen til 3D-projektion.
+![](./3d_rendering_math.png)<br>**Figur 10:** Tidlig revision af formlen til 3D-projektion.
 
 ## 27-3-2026
 
@@ -126,7 +126,7 @@ I denne uge arbejdede på skateboard-driver'en. Vi arbejde på at få gyroskop- 
 
 Udover den simple løsning, brugte vi tid på at undersøge mere advancerede teknikker. Vi undersøgte Kalman-filtre for at se, om vi kunne anvende det med fordel i vores projekt. Vi konkluderede, at Kalman-filtre var for teknisk svære, end hvad vi kunne nå at lære. Vi kiggede i diverse literature, hvor stort set det hele af det, antog et fagligt grundlag, som vi ikke besidder.
 
-![](./images/20260401_103010.jpg)<br>**Figur 11:** Eksempel på beregninger af Kalman-filter på en akse.
+![](./images/20260401_103010.jpg)<br>**Figur 12:** Eksempel på beregninger af Kalman-filter på en akse.
 
 Vi arbejdede også videre på 3D-rendering og resten af spillet. Vi lavede en opsætning, så vi kunne rendere komplicerede 3D-figure bygget op af terninger. Som en del af dette arbejdede vi på, at tegne trekanterne (som figurene består af) i den rigtige rækkefølge. Dette er væsentligt, for at få figurene renderet korrekt. Koden til at lave rækkefølgen af trekanterne blev ikke perfekt, men vi fik en god forståelse for problemet. Vi fik også lavet en skateboard-model, som vi kunne bruge i spillet. Vi fik også implementeret, så jorden i spillet blev renderet fra starten af skærmen ud i horisonten. Derudover implementerede vi, så man kunne bevæge skateboardet sideværts med piletasterne.
 
@@ -134,7 +134,7 @@ Vi arbejdede også på vores server-setup. Vi bookede en Linux-server og satte d
 
 Vi eksperimenterede med at lave en opsætning med Ansible. Dette var tiltænkt som deployment-automation-system, som først skulle køre parallelt med vores Github Actions CI setup, og muligvis erstatte det. Dog vurderede vi, at vi ikke ville give den indsats, det ville kræve.
 
-![](./game_with_skateboard.png)<br>**Figur 12:** Spil med skateboard. På dette tidspunkt var skateboardmodellen meget simpel. Det ses også, projektionstrekanterne blev renderet i forkert rækkefølge.
+![](./game_with_skateboard.png)<br>**Figur 13:** Spil med skateboard. På dette tidspunkt var skateboardmodellen meget simpel. Det ses også, projektionstrekanterne blev renderet i forkert rækkefølge.
 
 ## 2-4-2026 - 6-4-2026
 
@@ -144,9 +144,9 @@ Arbejdet gik i første omgang ud på at undersøge, hvordan kommunikationen mell
 
 Vi fandt produktbeskrivelsen og programmeringsmanualen til MPU6050. Med disse og den gamle driver som reference, skrev vi en ny driver. Vi opdagede, at det var ukompliceret at skrive driveren, efter vi fik et godt overblik over manualen. Vi brugte oscilloskopet og serial printing til debugging af driveren. Efter et par dages arbejde, fik vi driveren til at virke bedre end den gamle.
 
-![](./images/20260331_180122.jpg)<br>**Figur 13:** Skateboard-enhedens kommunkation målt med oscilloskop.
+![](./images/20260331_180122.jpg)<br>**Figur 14:** Skateboard-enhedens kommunkation målt med oscilloskop.
 
-![](./images/20260331_182132.jpg)<br>**Figur 14:** Skateboard-enhedens kommunkation målt med oscilloskop med driver-koden i baggrunden.
+![](./images/20260331_182132.jpg)<br>**Figur 15:** Skateboard-enhedens kommunkation målt med oscilloskop med driver-koden i baggrunden.
 
 På samme tid valgte vi at genbesøge 3D-renderingen. Vi oprettede et parallelt Rust-projekt til spillet. Her implementerede vi 3D-rendering på baggrund af den erfaring, vi fik fra at implementere det i spillet. Vi fik implementeret, så vi kunne importere modeller fra Blender, og rendere dem korrekt med rotationer og belysning.
 
@@ -156,15 +156,15 @@ På samme tid valgte vi at genbesøge 3D-renderingen. Vi oprettede et parallelt 
 
 De sidste step i at bruge den nye driver, var at sætte MPU6050'eren op til vores formål. Hertil beregnede vi en sampel rate, som passede til vores behov. Dog fandt vi senere ud af, at vores firmware endte med en anden sampel rate. Dette er beskrevet i produktrapporten.
 
-![](./images/20260401_085218.jpg)<br>**Figur 15:** Beregning af sample rate.
+![](./images/20260401_085218.jpg)<br>**Figur 16:** Beregning af sample rate.
 
 I denne uge arbejdede på det fysiske bræt til vores skateboard enhed. Vi arbejde ud fra en løs ide, om hvad vi ville have. Vi lavede nogle tegninger og diskuterede, hvordan vi ville lave produktet. Vi valgte, at købe et skateboard, aftage trucks'ne og installere bøjler på undersiden.
 
-![](./images/20260408_110252.jpg)<br>**Figur 16:** Tegning på whiteboard af skateboard.
+![](./images/20260408_110252.jpg)<br>**Figur 17:** Tegning på whiteboard af skateboard.
 
-(indsæt billede af skateboard i blender)
+![](./images/blender_skateboard.png)<br>**Figur 18:** Rendering af 3D-model i Blender.
 
-![](./images/20260408_165509.jpg)<br>**Figur 18:** Skateboard med bøjler.
+![](./images/20260408_165509.jpg)<br>**Figur 19:** Skateboard med bøjler.
 
 I slutningen af ugen havde vi en diskussion om, hvad vi følte i forhold til projektet. Nogle gruppemedlemmer havde en følelse af, at mangle forståelse for samtlige dele af systemet. Der var en følelse af, at det var svært at implementere systemerne, og derfor svært at lave et godt produkt. Sværheden i at udvikle det faktiske produkt, gjorde det sværre at motivere sig til arbejdet. Vi talte også om, at det ikke var en løsningen, at det ene gruppemedlem med overblik og erfaring implementerede det hele. I dette tilfælde, ville de 2 andre bare falde mere bagud i forståelse.
 
