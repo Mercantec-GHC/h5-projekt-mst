@@ -287,17 +287,13 @@ impl SegmentFactory {
     }
 
     pub fn new_random_segment(&self, pos: V3) -> Segment {
-        use SegmentKind::*;
         let choice: usize = random::next() as usize;
 
-        let segment_kind = &[RandomObstacles, MovingObstacles, SlalomObstacles][choice % 3];
-
-        dbg!(segment_kind);
-
-        match segment_kind {
-            SegmentKind::RandomObstacles => self.random_obstacle_segment(pos),
-            SegmentKind::MovingObstacles => self.moving_obstacle_segment(pos),
-            SegmentKind::SlalomObstacles => self.slalom_obstacle_segment(pos),
+        match choice % 3 {
+            0 => self.random_obstacle_segment(pos),
+            1 => self.moving_obstacle_segment(pos),
+            2 => self.slalom_obstacle_segment(pos),
+            _ => unreachable!(),
         }
     }
 }
@@ -339,7 +335,7 @@ impl SegmentManager {
         }
     }
 
-    pub fn shuffle(&mut self) {
+    pub fn add_new_segment(&mut self) {
         self.segments.pop_front().unwrap();
         let last = self.segments.back().unwrap();
         self.segments
@@ -349,7 +345,7 @@ impl SegmentManager {
                 last.pos.2 + self.segment_depth,
             )));
     }
-    pub fn should_shuffle(&self, z: f64) -> bool {
+    pub fn should_add_new_segment(&self, z: f64) -> bool {
         let first = self.segments.front().unwrap();
         first.pos.2 + self.segment_depth < z
     }
@@ -441,8 +437,11 @@ impl<R: Renderer> engine::Game<R> for Game {
 
         self.segment_manager.update(&mut cx, delta_time);
 
-        if self.segment_manager.should_shuffle(self.camera_pos.2) {
-            self.segment_manager.shuffle();
+        if self
+            .segment_manager
+            .should_add_new_segment(self.camera_pos.2)
+        {
+            self.segment_manager.add_new_segment();
         }
     }
 
