@@ -21,8 +21,8 @@ use crate::engine::{
     Color, Renderer, Triangle2,
 };
 
-pub static WIDTH: f64 = 1280.0;
-pub static HEIGHT: f64 = 720.0;
+pub static WIDTH: f64 = 1920.0;
+pub static HEIGHT: f64 = 1080.0;
 
 pub struct SdlIo<'me> {
     sdl_context: Sdl,
@@ -88,6 +88,7 @@ impl SdlIo<'_> {
         let window = video_subsystem
             .window("Game", WIDTH as u32, HEIGHT as u32)
             .position_centered()
+            .fullscreen()
             .build()
             .unwrap();
         let mut canvas = window.into_canvas();

@@ -13,7 +13,7 @@ use std::{
 };
 
 use crate::{
-    engine::{Color, Key, Renderer, Scene, Shape, V2, V3, WIDTH},
+    engine::{Color, Key, Renderer, Scene, Shape, HEIGHT, V2, V3, WIDTH},
     server::Server,
 };
 
@@ -27,18 +27,20 @@ struct Skateboard {
     pivot_deg_target: f64,
 }
 
-fn lose() {
-    panic!("You lost 🫵 😂");
+enum UpdateResult {
+    Continue,
+    GameOver,
 }
 
 impl Skateboard {
-    fn update(&mut self, delta_time: Duration) {
+    fn update(&mut self, delta_time: Duration) -> UpdateResult {
         self.vel.0 = self.pivot_deg * 2.0 * delta_time.as_secs_f64();
         self.pos += self.vel * delta_time.as_secs_f64();
         self.nyoom_factor += 16.0 * delta_time.as_secs_f64();
         if self.pos.0 < -0.5 || self.pos.0 > 0.5 {
-            lose();
+            return UpdateResult::GameOver;
         }
+        UpdateResult::Continue
     }
 
     fn render(&self, scene: &mut Scene) {
@@ -350,10 +352,13 @@ impl SegmentManager {
         first.pos.2 + self.segment_depth < z
     }
 
-    pub fn update(&mut self, cx: &mut UpdateCx, delta_time: Duration) {
+    pub fn update(&mut self, cx: &mut UpdateCx, delta_time: Duration) -> UpdateResult {
         for segment in &mut self.segments {
-            segment.update(cx, delta_time);
+            if let UpdateResult::GameOver = segment.update(cx, delta_time) {
+                return UpdateResult::GameOver;
+            }
         }
+        UpdateResult::Continue
     }
 
     pub fn render(&self, scene: &mut Scene) {
@@ -370,6 +375,7 @@ struct Game {
     keys_pressed: HashSet<Key>,
     event_queue: Arc<Mutex<VecDeque<f64>>>,
     ground: GroundManager,
+    joever_timer: Option<f64>,
 }
 
 impl Game {
@@ -389,13 +395,28 @@ impl Game {
             segment_manager: SegmentManager::new(V3(0.0, -0.24, 1.6), 4, 2.0, 1.0),
             keys_pressed: HashSet::new(),
             ground: GroundManager::new(V3(0.0, -0.25, -0.4), 0.1, 10, 20, 4),
+            joever_timer: None,
         }
+    }
+
+    fn restart(&mut self) {
+        *self = Self::new();
     }
 }
 
 impl<R: Renderer> engine::Game<R> for Game {
     fn update(&mut self, delta_time: Duration) {
-        self.skateboard.update(delta_time);
+        if let Some(joever_timer) = self.joever_timer.as_mut() {
+            *joever_timer -= delta_time.as_secs_f64();
+            if *joever_timer <= 0.0 {
+                self.restart();
+            }
+            return;
+        }
+        if let UpdateResult::GameOver = self.skateboard.update(delta_time) {
+            self.joever_timer = Some(5.0);
+            return;
+        }
         self.camera_pos = V3(
             self.skateboard.pos.0,
             self.skateboard.pos.1 + 0.15,
@@ -435,7 +456,10 @@ impl<R: Renderer> engine::Game<R> for Game {
             skateboard: &mut self.skateboard,
         };
 
-        self.segment_manager.update(&mut cx, delta_time);
+        if let UpdateResult::GameOver = self.segment_manager.update(&mut cx, delta_time) {
+            self.joever_timer = Some(5.0);
+            return;
+        }
 
         if self
             .segment_manager
@@ -452,13 +476,27 @@ impl<R: Renderer> engine::Game<R> for Game {
         self.skateboard.render(&mut scene);
         self.segment_manager.render(&mut scene);
         scene.render(r, self.camera_pos);
-        let id = r.load_text(
-            &format!("{}", (self.skateboard.pos.2 * 100.0) as u32),
-            48.0,
-            Color::Green,
-        );
-        let V2(width, _height) = r.query_texture(id);
-        r.draw_texture(id, V2(WIDTH / 2.0 - width / 2.0, 50.0));
+        {
+            let id = r.load_text(
+                &format!("{}", (self.skateboard.pos.2 * 100.0) as u32),
+                48.0,
+                Color::Green,
+            );
+            let V2(width, _height) = r.query_texture(id);
+            r.draw_texture(id, V2(WIDTH / 2.0 - width / 2.0, 50.0));
+        }
+        if let Some(joever_timer) = self.joever_timer {
+            let id = r.load_text(
+                &format!("{}", joever_timer.ceil() as u32),
+                96.0,
+                Color::Green,
+            );
+            let V2(width, height) = r.query_texture(id);
+            r.draw_texture(
+                id,
+                V2(WIDTH / 2.0 - width / 2.0, HEIGHT / 2.0 - height / 2.0),
+            );
+        }
     }
 
     fn event(&mut self, event: engine::Event) {
@@ -506,7 +544,7 @@ impl Segment {
         }
     }
 
-    fn update<'game>(&mut self, cx: &mut UpdateCx<'game>, delta_time: Duration) {
+    fn update<'game>(&mut self, cx: &mut UpdateCx<'game>, delta_time: Duration) -> UpdateResult {
         for obstacle in &mut self.obstacles {
             obstacle.pos += obstacle.vel * delta_time.as_secs_f64();
             match self.segment_kind {
@@ -538,9 +576,10 @@ impl Segment {
                 && skateboard_pos.1 < actual_obstacle_pos.2 + obstacle.size.2
                 && skateboard_pos_and_size.1 > actual_obstacle_pos.2
             {
-                lose();
+                return UpdateResult::GameOver;
             }
         }
+        UpdateResult::Continue
     }
 
     fn render(&self, scene: &mut Scene) {
