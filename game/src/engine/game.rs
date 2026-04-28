@@ -19,6 +19,8 @@ pub trait Renderer {
     fn draw_line(&mut self, from: V2, to: V2, color: Color);
     fn draw_triangle(&mut self, triangle: Triangle2, color: Color);
     fn draw_triangles(&mut self, triangles: &[Triangle2], color: Color);
+    fn screen_width(&self) -> f64;
+    fn screen_height(&self) -> f64;
 }
 
 #[derive(Clone, Copy)]

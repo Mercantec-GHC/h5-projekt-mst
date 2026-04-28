@@ -13,7 +13,7 @@ use std::{
 };
 
 use crate::{
-    engine::{Color, Key, Renderer, Scene, Shape, HEIGHT, V2, V3, WIDTH},
+    engine::{Color, Key, Renderer, Scene, Shape, V2, V3},
     server::Server,
 };
 
@@ -483,7 +483,7 @@ impl<R: Renderer> engine::Game<R> for Game {
                 Color::Green,
             );
             let V2(width, _height) = r.query_texture(id);
-            r.draw_texture(id, V2(WIDTH / 2.0 - width / 2.0, 50.0));
+            r.draw_texture(id, V2(r.screen_width() / 2.0 - width / 2.0, 50.0));
         }
         if let Some(joever_timer) = self.joever_timer {
             let id = r.load_text(
@@ -494,7 +494,10 @@ impl<R: Renderer> engine::Game<R> for Game {
             let V2(width, height) = r.query_texture(id);
             r.draw_texture(
                 id,
-                V2(WIDTH / 2.0 - width / 2.0, HEIGHT / 2.0 - height / 2.0),
+                V2(
+                    r.screen_width() / 2.0 - width / 2.0,
+                    r.screen_height() / 2.0 - height / 2.0,
+                ),
             );
         }
     }

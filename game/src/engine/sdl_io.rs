@@ -21,9 +21,6 @@ use crate::engine::{
     Color, Renderer, Triangle2,
 };
 
-pub static WIDTH: f64 = 1920.0;
-pub static HEIGHT: f64 = 1080.0;
-
 pub struct SdlIo<'me> {
     sdl_context: Sdl,
     video_subsystem: VideoSubsystem,
@@ -86,7 +83,7 @@ impl SdlIo<'_> {
         let video_subsystem = sdl_context.video().unwrap();
         let ttf_context = sdl3::ttf::init().map_err(|e| e.to_string())?;
         let window = video_subsystem
-            .window("Game", WIDTH as u32, HEIGHT as u32)
+            .window("Game", 1920, 1080)
             .position_centered()
             .fullscreen()
             .build()
@@ -164,12 +161,12 @@ impl SdlIo<'_> {
 
     /// world space to screen space
     fn scale_w2s(&self, v: V2) -> V2 {
-        let factor = WIDTH / 2.0;
+        let factor = self.screen_width() / 2.0;
         V2(v.0 * factor, v.1 * factor)
     }
     /// world space to screen space.
     fn translate_w2s(&self, v: V2) -> V2 {
-        let middle = V2(WIDTH / 2.0, HEIGHT / 2.0);
+        let middle = V2(self.screen_width() / 2.0, self.screen_height() / 2.0);
         V2(v.0 + middle.0, middle.1 - v.1)
     }
 
@@ -269,6 +266,15 @@ impl Renderer for SdlIo<'_> {
     fn query_texture(&mut self, id: u32) -> V2 {
         let texture = self.texture_handler.get(id);
         V2(texture.width() as f64, texture.height() as f64)
+    }
+
+    fn screen_width(&self) -> f64 {
+        let (size, _) = self.canvas.window().size();
+        size as f64
+    }
+    fn screen_height(&self) -> f64 {
+        let (_, size) = self.canvas.window().size();
+        size as f64
     }
 }
 
