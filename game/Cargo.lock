@@ -22,8 +22,18 @@ checksum = "96e613fca5924ccab8ab8369ab292a1b4720b125e98007fbda163f4ce7176472"
 dependencies = [
  "bitflags",
  "libc",
+ "sdl3-image-sys",
  "sdl3-sys",
  "sdl3-ttf-sys",
+]
+
+[[package]]
+name = "sdl3-image-sys"
+version = "0.6.2+SDL-image-3.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64a0c5e6f5874aef7cdc76ff36855bffd98f52feb9df3f5b7f443e0beb4472fe"
+dependencies = [
+ "sdl3-sys",
 ]
 
 [[package]]

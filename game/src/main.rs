@@ -375,10 +375,11 @@ struct Game {
     keys_pressed: HashSet<Key>,
     event_queue: Arc<Mutex<VecDeque<f64>>>,
     ground: GroundManager,
-    joever_timer: Option<f64>,
+    game_over_timer: Option<Duration>,
 }
 
 impl Game {
+    const RESTART_TIMER: Duration = Duration::from_secs(5);
     fn new() -> Self {
         Self {
             skateboard: Skateboard {
@@ -395,27 +396,28 @@ impl Game {
             segment_manager: SegmentManager::new(V3(0.0, -0.24, 1.6), 4, 2.0, 1.0),
             keys_pressed: HashSet::new(),
             ground: GroundManager::new(V3(0.0, -0.25, -0.4), 0.1, 10, 20, 4),
-            joever_timer: None,
+            game_over_timer: None,
         }
     }
 
     fn restart(&mut self) {
-        *self = Self::new();
+        let mut new = Self::new();
+        std::mem::swap(&mut new.event_queue, &mut self.event_queue);
+        *self = new;
     }
 }
 
 impl<R: Renderer> engine::Game<R> for Game {
     fn update(&mut self, delta_time: Duration) {
-        if let Some(joever_timer) = self.joever_timer.as_mut() {
-            *joever_timer -= delta_time.as_secs_f64();
-            if *joever_timer <= 0.0 {
-                self.restart();
+        if let Some(timer) = self.game_over_timer.as_mut() {
+            match timer.checked_sub(delta_time) {
+                Some(result) => *timer = result,
+                None => self.restart(),
             }
             return;
         }
         if let UpdateResult::GameOver = self.skateboard.update(delta_time) {
-            self.joever_timer = Some(5.0);
-            return;
+            self.game_over_timer = Some(Self::RESTART_TIMER);
         }
         self.camera_pos = V3(
             self.skateboard.pos.0,
@@ -457,8 +459,7 @@ impl<R: Renderer> engine::Game<R> for Game {
         };
 
         if let UpdateResult::GameOver = self.segment_manager.update(&mut cx, delta_time) {
-            self.joever_timer = Some(5.0);
-            return;
+            self.game_over_timer = Some(Self::RESTART_TIMER);
         }
 
         if self
@@ -485,9 +486,26 @@ impl<R: Renderer> engine::Game<R> for Game {
             let V2(width, _height) = r.query_texture(id);
             r.draw_texture(id, V2(r.screen_width() / 2.0 - width / 2.0, 50.0));
         }
-        if let Some(joever_timer) = self.joever_timer {
+        if let Some(timer) = self.game_over_timer {
+            {
+                let percentage =
+                    (Self::RESTART_TIMER - timer).as_secs_f64() / Self::RESTART_TIMER.as_secs_f64();
+                let percentage = percentage * 4.0;
+                if percentage < 1.0 {
+                    let picked_texture = (percentage * 16.0).floor() as u32;
+                    let id = r.load_image(&format!("assets/explosion/{picked_texture}.png"));
+                    let V2(width, height) = r.query_texture(id);
+                    r.draw_texture(
+                        id,
+                        V2(
+                            r.screen_width() / 2.0 - width / 2.0,
+                            r.screen_height() * 0.8 - height / 2.0,
+                        ),
+                    );
+                }
+            }
             let id = r.load_text(
-                &format!("{}", joever_timer.ceil() as u32),
+                &format!("{}", timer.as_secs_f64().ceil() as u32),
                 96.0,
                 Color::Green,
             );

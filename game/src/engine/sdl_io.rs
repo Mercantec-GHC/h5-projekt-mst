@@ -33,6 +33,7 @@ mod textures {
     use std::collections::HashMap;
 
     use sdl3::{
+        image::LoadTexture,
         render::{Texture, TextureCreator},
         ttf::Font,
         video::WindowContext,
@@ -54,6 +55,19 @@ mod textures {
                 id_counter: 0,
             }
         }
+        pub fn render_image(&mut self, path: &str) -> u32 {
+            let texture = unsafe {
+                let static_texture_creator: *const TextureCreator<WindowContext> =
+                    &self.texture_creator as *const _;
+                let texture = (&*static_texture_creator).load_texture(path).unwrap();
+                texture
+            };
+            let id = self.id_counter;
+            self.textures.insert(id, texture);
+            self.id_counter += 1;
+            id
+        }
+
         pub fn render_font(&mut self, font: Font, text: &str, color: Color) -> u32 {
             let surface = font.render(text).blended(color).unwrap();
             let texture = unsafe {
@@ -275,6 +289,11 @@ impl Renderer for SdlIo<'_> {
     fn screen_height(&self) -> f64 {
         let (_, size) = self.canvas.window().size();
         size as f64
+    }
+
+    fn load_image(&mut self, path: &str) -> u32 {
+        let id = self.texture_handler.render_image(path);
+        id
     }
 }
 
