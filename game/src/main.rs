@@ -240,17 +240,19 @@ impl SegmentFactory {
     pub fn random_obstacle_segment(&self, pos: V3) -> Segment {
         let mut obstacles: Vec<Obstacle> = Vec::new();
         for i in 1..=4 {
+            let x = random::next_in_range_f64(
+                (-self.segment_width / 2.0)..(self.segment_width / 2.0 - 0.2),
+            );
             obstacles.push(Obstacle {
-                pos: V3(
-                    random::next_in_range_f64(
-                        (-self.segment_width / 2.0)..(self.segment_width / 2.0),
-                    ) - 0.1,
-                    0.0,
-                    self.segment_depth / 4.0 * i as f64,
-                ),
+                pos: V3(x, 0.0, self.segment_depth / 4.0 * i as f64),
                 vel: V3(0.0, 0.0, 0.0),
                 size: V3(0.1, 0.1, 0.1),
-            })
+            });
+            obstacles.push(Obstacle {
+                pos: V3(x + 0.1, 0.0, self.segment_depth / 4.0 * i as f64),
+                vel: V3(0.0, 0.0, 0.0),
+                size: V3(0.1, 0.1, 0.1),
+            });
         }
         Segment::new(SegmentKind::RandomObstacles, pos, obstacles)
     }
