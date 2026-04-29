@@ -9,7 +9,9 @@ Løsningen består af 1) et spil implementeret som en Desktop-applikation, 2) en
 
 Koden samt yderligere materialer ligger i Github repo'et[^1].
 
-## Spillet
+Antag at der står S. ud fra alle sektioner.
+
+## Spillet (M.)
 
 Spillet er implementeret som en Desktop-applikation. Applikationen er skrevet i Rust som et Cargo-projekt. Spillets brugerflade er grafisk og bruger 3D-rendering. Applikationen bruger SDL3 til 2D-rasterizering og operativsystem-IO og in-house 3D-projektion til at rendere 3D.
 
@@ -20,7 +22,7 @@ For at køre spillet, installer Rust, SDL3 og SDL3_ttf, og kør `cargo run`.
 ![entity relations diagram](./h5-mst-game-entity-relations.drawio.svg)
 
 
-### Vindue, taster-input og 2D-rasterizering
+### Vindue, taster-input og 2D-rasterizering (M.)
 
 Vi har valgt at skrive spillet i Rust. Dette har vi valgt, fordi vi alle har tidligere erfaring med at lave spil i Rust som Desktop-applikationer med SDL (SDL2). Vi har oplevet Rust som godt til Desktop-applikationer med kompleksitet og performance-krav. Diskuterede alternativer er C++ og Typescript. Siden vi ikke har lige så meget erfaring med C++ som gruppe blev dette valgt fra. Vi vurderede, at Typescript ikke passede godt til vores behov. Dele af vores applikation ligger tæt på operativsystemet i abstraktion, og vi har mindre erfaring med at udvikle med sådanne behov i Typescript end i Rust.
 
@@ -89,7 +91,7 @@ Figurene skabes og håndteres med `struct Shape` struct'et. Med dette struct kan
 
 For at tegne shapes, dvs. flere trekanter på en gang, har vi implementeret `struct Scene` structet. Dette er defineret i `src/engine/scene.rs`. Formålet med dette struct, er at man kan bygge en scene og så rendere den. Når scenen renderes sørger structet for at tegne alle trekanter i den rigtige rækkefølge. Trekanter udenfor skærmen og trekanter der vender væk fra skærmen renderes ikke. Den er implementeret, ved at den akkumulerer en liste af trekanter sammen med hver trekants normalvektor og farver. Når `Scene::render` kaldes, sorteres alle trekanter ift. distance fra skærmen, derefter itereres der over alle trekanter, projektioner udregnes og trekanterne tegnes med `Renderer::draw_triangle`.
 
-#### Sortering af trekanter
+#### Sortering af trekanter (M.)
 
 Først lidt om, hvorfor trekanterne skal sorteres. Når man renderer trekanterne, tegner man som sådan alle trekanter på skærmen. Dvs. hvis 2 eller flere trekanter overlapper hinanden i 2D-projektionen, så er vi nødt til at vide, hvilken trekant vi skal tegne først. Vi vil gerne gøre, så at den tættest på liggende trekant tegnes sidst, så den er forest på det renderede billede.
 
@@ -120,7 +122,7 @@ Det der er værd at se, er at `p_scores`, som er hvert punkts score, udregnes ve
 
 Denne algoritme til at beregne score er vi kommet frem til gennem eksperimentering. Om dette er den optimale algoritme, ved vi ikke. Et populært alternative til at benytte en algoritme på denne måde er Z-buffering[^6]. Her beregnes afstanden for hvert enkelt pixel, og man opnår derved perfekt rendering af overlappende trekanter. Ulempen ved Z-buffering er, at det er beregningstungt. I realtidsapplikationer (såsom et spil) kan det derfor ikke svare sig, hvis man laver 3D-udregninerne på CPU'en. Det er ofte, at man foretager 3D-beregninerne på GPU'en istedet. Det gør vi ikke af flere årsager, så det behøver vi ikke at bekymre os om. Istedet er vores metode, at udregne en aggrigat-værdi for hver trekant. Dvs. istedet for en afstandsberegning for hvert pixel, laver vi 3 afstandsberegninger for hver trekant og en sortering af de 3 værdier.
 
-#### Filtering af trekanter
+#### Filtering af trekanter (M.)
 
 Ikke alle trekanter skal tegnes på skærmen. Trekanter som vender væk fra kameraet, eksempelvis bagsiden af en kasse, bør ikke tegnes. Trekanter, hvis punkter ligger bag kameraet bør heller ikke tegnes. Dels vil de ikke være på skærmen, men matematikken bliver også utilregnelig når punkterne ligger meget tæt på eller bag kameraret. Derudover sparer vi også noget CPU-tid, ved at vælge trekanter fra generelt.
 
@@ -144,13 +146,13 @@ if normal.dot(camera_pos - tri3.0) < 0.0 {
 }
 ```
 
-#### Rendering af scene
+#### Rendering af scene (M.)
 
 Spillet består primært af en enkelt scene. Denne scene er bygget op med forskellige objekter. Disse objekter er defineret som structs, inkluderende `struct Skateboard`, `struct Segment`, `struct Obstacle`, `struct Ground`. Disse er alle sub-objekter på `struct Game`. I `game::Render`-metoden, renderes scenen ved at hvert objekt renderer sig selv i et `Scene`-objekt. For at renderer figure bestående af flere figure, bruges `struct ShapeGroup` struct'et. Dette er en samling a `Shape`-objekter som kan håndteres som en samlet enhed.
 
 Når en figur renderes (normalvis i en `render` metode), instantieres et `Shape` objekt. Objektet skaleres, roteres og flyttes til den ønskede destination i scenen. Dette gøres med 3D-vektormatematik. Både `ShapeGroup` og `Scene` giver muligheder for at rotere og flytte flere objekter som en enhed.
 
-#### Kommunikation med backenden
+#### Kommunikation med backenden (M.)
 
 Kommunikation med backend'en er enkapsuleret i `struct Server`-structet. Selvom den nok skulle have heddet `Backend`, så er den ansvarlig for at opsætte og vedligeholde forbindelsen til backenden. Kommunikationen benytter vores in-house TCP-protokol. Pt. består den af et endpoint, som opretter en stream af sensor data.
 
@@ -412,7 +414,7 @@ server.listen();
 
 Pt. er der et enkelt endpoint i TCP-protokellen: `Subscribe`. Et subscribe-kald fortæller serveren, at den skal tilføje clienten til listen af klienter, der skal modtage data fra (pt. singulært) skateboardet. Klienter forventes derefter at receive data fra serveren. Med `Server::notify_subscribers()` kan backend'en sende vinkel-data til alle registrerede subscribers. Som nuværende, sker dette i MQTT subscription handleren til topic'et `/skateboard/update`. Dvs. når skateboardet publish'er data til `/skateboard/update` over MQTT, sendes det videre til alle subscribers. Serveren har funktionalitet til håndtering af afbrudte og fejlståede forbindelser.
 
-#### JSON-parser
+#### JSON-parser (M.)
 
 I backend-applikationen er der en in-house JSON-parser. Vi valgte, at bruge vores egen JSON-parser, da vi havde brug for den ekstra performance, vi kunne få ud af en custom implementering. JSON-parseren er enkapsuleret i `mst::json::Value` og `mst::json::parse()`, og defineret i `src/json.hpp` og `src/json.cpp`. JSON-parseren er originalt et C-projekt, som vi har ported til C++23. Med en hurtig tokenizer, fleksibel parser, vel-defineret interface og simpelt query-funktionalitet, forsøger JSON-parseren at være både hurtig og nem at bruge. Vores JSON-parser er ikke 100% standards complient[^13], men den opfylder vores behov. Alternativer til en in-house implementation kunne være nlohmann/json[^14] eller simdjson[^15]. Et eksempel (taget fra en unittest) er følgende:
 ```c++
