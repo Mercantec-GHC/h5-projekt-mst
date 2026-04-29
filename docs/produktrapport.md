@@ -22,7 +22,7 @@ For at køre spillet, installer Rust, SDL3 og SDL3_ttf, og kør `cargo run`.
 ![entity relations diagram](./h5-mst-game-entity-relations.drawio.svg)
 
 
-### Vindue, taster-input og 2D-rasterizering (M.)
+### Vindue, taster-input og 2D-rasterizering (M., T.)
 
 Vi har valgt at skrive spillet i Rust. Dette har vi valgt, fordi vi alle har tidligere erfaring med at lave spil i Rust som Desktop-applikationer med SDL (SDL2). Vi har oplevet Rust som godt til Desktop-applikationer med kompleksitet og performance-krav. Diskuterede alternativer er C++ og Typescript. Siden vi ikke har lige så meget erfaring med C++ som gruppe blev dette valgt fra. Vi vurderede, at Typescript ikke passede godt til vores behov. Dele af vores applikation ligger tæt på operativsystemet i abstraktion, og vi har mindre erfaring med at udvikle med sådanne behov i Typescript end i Rust.
 
