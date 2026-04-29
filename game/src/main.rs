@@ -239,14 +239,14 @@ impl SegmentFactory {
 
     pub fn random_obstacle_segment(&self, pos: V3) -> Segment {
         let mut obstacles: Vec<Obstacle> = Vec::new();
-        for i in 1..5 {
+        for i in 1..=4 {
             obstacles.push(Obstacle {
                 pos: V3(
                     random::next_in_range_f64(
                         (-self.segment_width / 2.0)..(self.segment_width / 2.0),
                     ) - 0.1,
                     0.0,
-                    self.segment_depth / i as f64,
+                    self.segment_depth / 4.0 * i as f64,
                 ),
                 vel: V3(0.0, 0.0, 0.0),
                 size: V3(0.1, 0.1, 0.1),
@@ -257,14 +257,14 @@ impl SegmentFactory {
 
     pub fn moving_obstacle_segment(&self, pos: V3) -> Segment {
         let mut obstacles: Vec<Obstacle> = Vec::new();
-        for i in 1..4 {
+        for i in 1..=3 {
             obstacles.push(Obstacle {
                 pos: V3(
                     random::next_in_range_f64(
                         (-self.segment_width / 2.0)..(self.segment_width / 2.0),
                     ) - 0.1,
                     0.0,
-                    self.segment_depth / i as f64,
+                    self.segment_depth / 3.0 * i as f64,
                 ),
                 vel: V3(0.1, 0.0, 0.0),
                 size: V3(0.1, 0.1, 0.1),
@@ -286,6 +286,33 @@ impl SegmentFactory {
             })
         }
         Segment::new(SegmentKind::SlalomObstacles, pos, obstacles)
+    }
+
+    pub fn curve_obstacle_segment(&self, pos: V3) -> Segment {
+        let mut obstacles: Vec<Obstacle> = Vec::new();
+        for i in 1..=6 {
+            obstacles.push(Obstacle {
+                pos: V3(
+                    -self.segment_width / 2.0 + i as f64 * 0.1 - 0.1,
+                    0.0,
+                    self.segment_depth / 12.0 * i as f64,
+                ),
+                vel: V3(0.0, 0.0, 0.0),
+                size: V3(0.1, 0.1, 0.1),
+            });
+        }
+        for i in 1..=6 {
+            obstacles.push(Obstacle {
+                pos: V3(
+                    self.segment_width / 2.0 - i as f64 * 0.1,
+                    0.0,
+                    self.segment_depth / 2.0 + self.segment_depth / 12.0 * i as f64,
+                ),
+                vel: V3(0.0, 0.0, 0.0),
+                size: V3(0.1, 0.1, 0.1),
+            });
+        }
+        Segment::new(SegmentKind::CurveObstacles, pos, obstacles)
     }
 
     pub fn new_random_segment(&self, pos: V3) -> Segment {
@@ -545,6 +572,7 @@ struct Ground {
 
 #[derive(Debug)]
 enum SegmentKind {
+    CurveObstacles,
     RandomObstacles,
     MovingObstacles,
     SlalomObstacles,
@@ -580,6 +608,7 @@ impl Segment {
                     }
                 }
                 SegmentKind::SlalomObstacles => {}
+                SegmentKind::CurveObstacles => {}
             }
             let actual_obstacle_pos = obstacle.pos + self.pos;
             let (skateboard_pos, skateboard_pos_and_size) = (
